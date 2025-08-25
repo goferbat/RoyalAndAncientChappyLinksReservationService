@@ -62,4 +62,11 @@ public class ReservationService {
     private int remaining(String time) {
         return Math.max(0, CAPACITY_PER_TIME - buckets.get(time).size());
     }
+
+    public Reservation findById(String reservationId) {
+        var time = idToTime.get(reservationId);
+        if (time == null) return null;
+        return buckets.get(time).stream().filter(r -> r.id().equals(reservationId)).findFirst().orElse(null);
+    }
+
 }
