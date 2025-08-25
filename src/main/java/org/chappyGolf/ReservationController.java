@@ -8,9 +8,6 @@ import org.chappyGolf.services.ReservationService;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
-@RestController
-@RequestMapping("/api")
-@CrossOrigin(origins = "*")
 public class ReservationController {
 
     private final ReservationService service;
@@ -47,5 +44,20 @@ public class ReservationController {
         return removed
                 ? Map.of("ok", true, "message", "Cancelled", "id", id)
                 : Map.of("ok", false, "message", "Reservation not found", "id", id);
+    }
+
+    @GetMapping("/tee-times")
+    public List<String> available() {
+        return service.getTimesWithAvailability();
+    }
+
+    @GetMapping("/tee-times/status")
+    public List<TeeTimeStatus> status() {
+        return service.getStatus();
+    }
+
+    @GetMapping("/reservations")
+    public Map<String, List<Reservation>> all() {
+        return service.getAllReservations();
     }
 }
