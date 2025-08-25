@@ -30,16 +30,28 @@ public class ReservationService {
 
     public List<TeeTimeStatus> getStatus() {
         return TEE_TIMES.stream()
-                .map(t -> new TeeTimeStatus(t, CAPACITY_PER_TIME, buckets.get(t).size(),
-                        Math.max(0, CAPACITY_PER_TIME - buckets.get(t).size())))
+                .map(t -> {
+                    int booked = buckets.get(t).stream()
+                            .mapToInt(Reservation::numOfPlayers)
+                            .sum();
+                    int remaining = Math.max(0, CAPACITY_PER_TIME - booked);
+                    return new TeeTimeStatus(t, CAPACITY_PER_TIME, booked, remaining);
+                })
                 .toList();
     }
 
-    public synchronized Reservation reserveOne(String name, String time) {
+    public synchronized Reservation reserveOne(String name, String time, int numOfPlayers) {
         if (!buckets.containsKey(time)) throw new IllegalArgumentException("Invalid time slot.");
+
         var list = buckets.get(time);
-        if (list.size() >= CAPACITY_PER_TIME) throw new IllegalStateException("Time slot full.");
-        var res = new Reservation(java.util.UUID.randomUUID().toString(), name, time);
+        int alreadyBooked = list.stream().mapToInt(Reservation::numOfPlayers).sum();
+
+        if (alreadyBooked + numOfPlayers > CAPACITY_PER_TIME) {
+            throw new IllegalStateException("Not enough slots available. Only "
+                    + (CAPACITY_PER_TIME - alreadyBooked) + " remaining.");
+        }
+
+        var res = new Reservation(UUID.randomUUID().toString(), name, time, numOfPlayers);
         list.add(res);
         idToTime.put(res.id(), time);
         return res;
@@ -76,4 +88,11 @@ public class ReservationService {
     private int remaining(String time) {
         return Math.max(0, CAPACITY_PER_TIME - buckets.get(time).size());
     }
+
+    public Reservation findById(String reservationId) {
+        var time = idToTime.get(reservationId);
+        if (time == null) return null;
+        return buckets.get(time).stream().filter(r -> r.id().equals(reservationId)).findFirst().orElse(null);
+    }
+
 }
