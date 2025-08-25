@@ -28,8 +28,10 @@ public class ReservationController {
 
     @DeleteMapping("/reservations/{id}")
     public Map<String, Object> cancel(@PathVariable String id) {
-        return service.cancelById(id)
-                ? Map.of("ok", true, "message", "Cancelled", "id", id)
+        var removed = service.cancelById(id);
+        return (removed != null)
+                ? Map.of("ok", true, "message", "Cancelled",
+                "id", id, "time", removed.time(), "freedPlayers", removed.numOfPlayers())
                 : Map.of("ok", false, "message", "Reservation not found", "id", id);
     }
 

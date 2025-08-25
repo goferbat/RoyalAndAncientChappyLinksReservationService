@@ -45,12 +45,26 @@ public class ReservationService {
         return res;
     }
 
-    public synchronized boolean cancelById(String reservationId) {
+    public synchronized Reservation cancelById(String reservationId) {
         var time = idToTime.remove(reservationId);
-        if (time == null) return false;
+        if (time == null) return null;
+
         var list = buckets.get(time);
-        if (list == null) return false;
-        return list.removeIf(r -> reservationId.equals(r.id()));
+        if (list == null) return null;
+
+        var found = list.stream()
+                .filter(r -> r.id().equals(reservationId))
+                .findFirst()
+                .orElse(null);
+
+        if (found == null) {
+            // put the index back if we didn’t actually remove
+            idToTime.put(reservationId, time);
+            return null;
+        }
+
+        list.remove(found); // frees exactly found.numOfPlayers()
+        return found;
     }
 
     public Map<String, List<Reservation>> getAllReservations() {
