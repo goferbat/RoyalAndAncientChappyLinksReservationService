@@ -23,11 +23,12 @@ public class ReservationController {
 
     @PostMapping("/reserve")
     public Map<String, Object> reserve(@RequestBody CreateReservationRequest req) {
-        if (req.name() == null || req.name().isBlank() || req.time() == null || req.email() == null || req.email().isBlank()) {
-            return Map.of("ok", false, "message", "Provide 'name', 'time', and 'email'.");
+        if (req.name() == null || req.name().isBlank() || req.time() == null || req.email() == null
+                || req.email().isBlank() || req.numOfPlayers() == null ) {
+            return Map.of("ok", false, "message", "Provide 'name', 'time', 'email' and 'number of players'.");
         }
         try {
-            var saved = service.reserveOne(req.name().trim(), req.time().trim());
+            var saved = service.reserveOne(req.name().trim(), req.time().trim(), req.numOfPlayers());
             // fire-and-forget email
             mail.sendReservationEmail(req.email().trim(), saved);
             return Map.of("ok", true, "id", saved.id(), "name", saved.name(), "time", saved.time());
