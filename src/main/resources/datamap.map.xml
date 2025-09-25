@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-map xmlns="http://cayenne.apache.org/schema/10/modelMap"
+	 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	 xsi:schemaLocation="http://cayenne.apache.org/schema/10/modelMap https://cayenne.apache.org/schema/10/modelMap.xsd"
+	 project-version="10">
+	<property name="defaultPackage" value="org.chappyGolf.model.cayenne"/>
+	<db-entity name="payment" schema="public">
+		<db-attribute name="amount_cents" type="BIGINT" isMandatory="true" length="10"/>
+		<db-attribute name="created_at" type="TIMESTAMP" length="29"/>
+		<db-attribute name="id" type="INTEGER" isPrimaryKey="true" isGenerated="true" isMandatory="true" length="10"/>
+		<db-attribute name="reservation_id" type="INTEGER" length="10"/>
+		<db-attribute name="square_payment_id" type="VARCHAR" isMandatory="true" length="100"/>
+		<db-attribute name="status" type="VARCHAR" isMandatory="true" length="50"/>
+	</db-entity>
+	<db-entity name="reservation" schema="public">
+		<db-attribute name="created_at" type="TIMESTAMP" length="29"/>
+		<db-attribute name="id" type="INTEGER" isPrimaryKey="true" isGenerated="true" isMandatory="true" length="10"/>
+		<db-attribute name="party_size" type="INTEGER" isMandatory="true"/>
+		<db-attribute name="tee_time_id" type="INTEGER" isMandatory="true" length="10"/>
+		<db-attribute name="user_id" type="INTEGER" isMandatory="true" length="10"/>
+	</db-entity>
+	<db-entity name="tee_time" schema="public">
+		<db-attribute name="capacity" type="INTEGER" length="1"/>
+		<db-attribute name="id" type="INTEGER" isPrimaryKey="true" isGenerated="true" isMandatory="true" length="10"/>
+		<db-attribute name="reserved" type="BIT" length="1"/>
+		<db-attribute name="slot" type="TIMESTAMP" isMandatory="true" length="29"/>
+	</db-entity>
+	<db-entity name="tee_time_tier" schema="public">
+		<db-attribute name="id" type="INTEGER" isPrimaryKey="true" isGenerated="true" isMandatory="true" length="10"/>
+		<db-attribute name="name" type="VARCHAR" isMandatory="true" length="50"/>
+		<db-attribute name="price_cents" type="BIGINT" isMandatory="true" length="19"/>
+	</db-entity>
+	<db-entity name="users" schema="public">
+		<db-attribute name="created_at" type="TIMESTAMP" length="29"/>
+		<db-attribute name="email" type="VARCHAR" isMandatory="true" length="150"/>
+		<db-attribute name="id" type="INTEGER" isPrimaryKey="true" isGenerated="true" isMandatory="true" length="10"/>
+		<db-attribute name="name" type="VARCHAR" isMandatory="true" length="100"/>
+	</db-entity>
+	<obj-entity name="Payment" className="org.chappyGolf.model.cayenne.Payment" dbEntityName="payment">
+		<obj-attribute name="amountCents" type="long" db-attribute-path="amount_cents"/>
+		<obj-attribute name="createdAt" type="java.time.LocalDateTime" db-attribute-path="created_at"/>
+		<obj-attribute name="squarePaymentId" type="java.lang.String" db-attribute-path="square_payment_id"/>
+		<obj-attribute name="status" type="java.lang.String" db-attribute-path="status"/>
+	</obj-entity>
+	<obj-entity name="Reservation" className="org.chappyGolf.model.cayenne.Reservation" dbEntityName="reservation">
+		<obj-attribute name="createdAt" type="java.time.LocalDateTime" db-attribute-path="created_at"/>
+		<obj-attribute name="partySize" type="java.lang.Integer" db-attribute-path="party_size"/>
+	</obj-entity>
+	<obj-entity name="TeeTime" className="org.chappyGolf.model.cayenne.TeeTime" dbEntityName="tee_time">
+		<obj-attribute name="capacity" type="int" db-attribute-path="capacity"/>
+		<obj-attribute name="reserved" type="java.lang.Boolean" db-attribute-path="reserved"/>
+		<obj-attribute name="slot" type="java.time.LocalDateTime" db-attribute-path="slot"/>
+	</obj-entity>
+	<obj-entity name="TeeTimeTier" className="org.chappyGolf.model.cayenne.TeeTimeTier" dbEntityName="tee_time_tier">
+		<obj-attribute name="name" type="java.lang.String" db-attribute-path="name"/>
+		<obj-attribute name="priceCents" type="long" db-attribute-path="price_cents"/>
+	</obj-entity>
+	<obj-entity name="Users" className="org.chappyGolf.model.cayenne.Users" dbEntityName="users">
+		<obj-attribute name="createdAt" type="java.time.LocalDateTime" db-attribute-path="created_at"/>
+		<obj-attribute name="email" type="java.lang.String" db-attribute-path="email"/>
+		<obj-attribute name="name" type="java.lang.String" db-attribute-path="name"/>
+	</obj-entity>
+	<db-relationship name="reservation" source="payment" target="reservation">
+		<db-attribute-pair source="reservation_id" target="id"/>
+	</db-relationship>
+	<db-relationship name="paymentss" source="reservation" target="payment" toMany="true">
+		<db-attribute-pair source="id" target="reservation_id"/>
+	</db-relationship>
+	<db-relationship name="teeTime" source="reservation" target="tee_time">
+		<db-attribute-pair source="tee_time_id" target="id"/>
+	</db-relationship>
+	<db-relationship name="reservationss" source="tee_time" target="reservation" toMany="true">
+		<db-attribute-pair source="id" target="tee_time_id"/>
+	</db-relationship>
+	<obj-relationship name="reservation" source="Payment" target="Reservation" deleteRule="Nullify" db-relationship-path="reservation"/>
+	<obj-relationship name="paymentss" source="Reservation" target="Payment" deleteRule="Deny" db-relationship-path="paymentss"/>
+	<obj-relationship name="teeTime" source="Reservation" target="TeeTime" deleteRule="Nullify" db-relationship-path="teeTime"/>
+	<obj-relationship name="reservationss" source="TeeTime" target="Reservation" deleteRule="Deny" db-relationship-path="reservationss"/>
+	<dbImport xmlns="http://cayenne.apache.org/schema/10/dbimport">
+		<schema>
+			<includeTable>
+				<name>payments</name>
+			</includeTable>
+			<includeTable>
+				<name>reservations</name>
+			</includeTable>
+			<includeTable>
+				<name>tee_times</name>
+			</includeTable>
+			<includeTable>
+				<name>users</name>
+			</includeTable>
+			<includeTable>
+				<name>tee_time_tier</name>
+			</includeTable>
+			<includeTable>
+				<name>tee_time</name>
+			</includeTable>
+			<includeTable>
+				<name>reservation</name>
+			</includeTable>
+			<includeTable>
+				<name>payment</name>
+			</includeTable>
+			<name>public</name>
+		</schema>
+		<tableTypes>
+			<tableType>TABLE</tableType>
+			<tableType>VIEW</tableType>
+		</tableTypes>
+		<forceDataMapCatalog>false</forceDataMapCatalog>
+		<forceDataMapSchema>false</forceDataMapSchema>
+		<namingStrategy>org.apache.cayenne.dbsync.naming.DefaultObjectNameGenerator</namingStrategy>
+		<skipPrimaryKeyLoading>false</skipPrimaryKeyLoading>
+		<skipRelationshipsLoading>false</skipRelationshipsLoading>
+		<useJava7Types>false</useJava7Types>
+		<usePrimitives>true</usePrimitives>
+	</dbImport>
+	<cgen xmlns="http://cayenne.apache.org/schema/10/cgen">
+		<excludeEntities>TeeTimeTier</excludeEntities>
+		<destDir>../java</destDir>
+		<mode>entity</mode>
+		<template>templates/v4_1/subclass.vm</template>
+		<superTemplate>templates/v4_1/superclass.vm</superTemplate>
+		<embeddableTemplate>templates/v4_1/embeddable-subclass.vm</embeddableTemplate>
+		<embeddableSuperTemplate>templates/v4_1/embeddable-superclass.vm</embeddableSuperTemplate>
+		<queryTemplate>templates/v4_1/datamap-subclass.vm</queryTemplate>
+		<querySuperTemplate>templates/v4_1/datamap-superclass.vm</querySuperTemplate>
+		<outputPattern>*.java</outputPattern>
+		<makePairs>true</makePairs>
+		<usePkgPath>true</usePkgPath>
+		<overwrite>false</overwrite>
+		<createPropertyNames>false</createPropertyNames>
+		<createPKProperties>false</createPKProperties>
+		<client>false</client>
+	</cgen>
+</data-map>
