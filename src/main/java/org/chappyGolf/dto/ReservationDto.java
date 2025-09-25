@@ -6,6 +6,7 @@ public class ReservationDto {
     private String sourceId;
     private long amountCents;
     private int partySize; // number of players (1–6)
+    private int teeTimeTier;
 
     public int getUserId() {
         return userId;
@@ -47,5 +48,12 @@ public class ReservationDto {
         this.partySize = partySize;
     }
 
+    public int getTeeTimeTier() {
+        return teeTimeTier;
+    }
+
+    public void setTeeTimeTier(int teeTimeTier) {
+        this.teeTimeTier = teeTimeTier;
+    }
     // getters/setters
 }

@@ -14,6 +14,7 @@ import org.apache.cayenne.exp.property.NumericProperty;
 import org.apache.cayenne.exp.property.PropertyFactory;
 import org.chappyGolf.model.cayenne.Payment;
 import org.chappyGolf.model.cayenne.TeeTime;
+import org.chappyGolf.model.cayenne.TeeTimeTier;
 import org.chappyGolf.model.cayenne.Users;
 
 /**
@@ -30,15 +31,17 @@ public abstract class _Reservation extends BaseDataObject {
 
     public static final DateProperty<LocalDateTime> CREATED_AT = PropertyFactory.createDate("createdAt", LocalDateTime.class);
     public static final NumericProperty<Integer> PARTY_SIZE = PropertyFactory.createNumeric("partySize", Integer.class);
-    public static final ListProperty<Payment> PAYMENTSS = PropertyFactory.createList("paymentss", Payment.class);
+    public static final ListProperty<Payment> PAYMENTS = PropertyFactory.createList("payments", Payment.class);
     public static final EntityProperty<TeeTime> TEE_TIME = PropertyFactory.createEntity("teeTime", TeeTime.class);
+    public static final EntityProperty<TeeTimeTier> TIER = PropertyFactory.createEntity("tier", TeeTimeTier.class);
     public static final EntityProperty<Users> USER = PropertyFactory.createEntity("user", Users.class);
 
     protected LocalDateTime createdAt;
-    protected Integer partySize;
+    protected int partySize;
 
-    protected Object paymentss;
+    protected Object payments;
     protected Object teeTime;
+    protected Object tier;
     protected Object user;
 
     public void setCreatedAt(LocalDateTime createdAt) {
@@ -51,27 +54,27 @@ public abstract class _Reservation extends BaseDataObject {
         return this.createdAt;
     }
 
-    public void setPartySize(Integer partySize) {
+    public void setPartySize(int partySize) {
         beforePropertyWrite("partySize", this.partySize, partySize);
         this.partySize = partySize;
     }
 
-    public Integer getPartySize() {
+    public int getPartySize() {
         beforePropertyRead("partySize");
         return this.partySize;
     }
 
-    public void addToPaymentss(Payment obj) {
-        addToManyTarget("paymentss", obj, true);
+    public void addToPayments(Payment obj) {
+        addToManyTarget("payments", obj, true);
     }
 
-    public void removeFromPaymentss(Payment obj) {
-        removeToManyTarget("paymentss", obj, true);
+    public void removeFromPayments(Payment obj) {
+        removeToManyTarget("payments", obj, true);
     }
 
     @SuppressWarnings("unchecked")
-    public List<Payment> getPaymentss() {
-        return (List<Payment>)readProperty("paymentss");
+    public List<Payment> getPayments() {
+        return (List<Payment>)readProperty("payments");
     }
 
     public void setTeeTime(TeeTime teeTime) {
@@ -80,6 +83,14 @@ public abstract class _Reservation extends BaseDataObject {
 
     public TeeTime getTeeTime() {
         return (TeeTime)readProperty("teeTime");
+    }
+
+    public void setTier(TeeTimeTier tier) {
+        setToOneTarget("tier", tier, true);
+    }
+
+    public TeeTimeTier getTier() {
+        return (TeeTimeTier)readProperty("tier");
     }
 
     public void setUser(Users user) {
@@ -101,10 +112,12 @@ public abstract class _Reservation extends BaseDataObject {
                 return this.createdAt;
             case "partySize":
                 return this.partySize;
-            case "paymentss":
-                return this.paymentss;
+            case "payments":
+                return this.payments;
             case "teeTime":
                 return this.teeTime;
+            case "tier":
+                return this.tier;
             case "user":
                 return this.user;
             default:
@@ -123,13 +136,16 @@ public abstract class _Reservation extends BaseDataObject {
                 this.createdAt = (LocalDateTime)val;
                 break;
             case "partySize":
-                this.partySize = (Integer)val;
+                this.partySize = val == null ? 0 : (int)val;
                 break;
-            case "paymentss":
-                this.paymentss = val;
+            case "payments":
+                this.payments = val;
                 break;
             case "teeTime":
                 this.teeTime = val;
+                break;
+            case "tier":
+                this.tier = val;
                 break;
             case "user":
                 this.user = val;
@@ -151,9 +167,10 @@ public abstract class _Reservation extends BaseDataObject {
     protected void writeState(ObjectOutputStream out) throws IOException {
         super.writeState(out);
         out.writeObject(this.createdAt);
-        out.writeObject(this.partySize);
-        out.writeObject(this.paymentss);
+        out.writeInt(this.partySize);
+        out.writeObject(this.payments);
         out.writeObject(this.teeTime);
+        out.writeObject(this.tier);
         out.writeObject(this.user);
     }
 
@@ -161,9 +178,10 @@ public abstract class _Reservation extends BaseDataObject {
     protected void readState(ObjectInputStream in) throws IOException, ClassNotFoundException {
         super.readState(in);
         this.createdAt = (LocalDateTime)in.readObject();
-        this.partySize = (Integer)in.readObject();
-        this.paymentss = in.readObject();
+        this.partySize = in.readInt();
+        this.payments = in.readObject();
         this.teeTime = in.readObject();
+        this.tier = in.readObject();
         this.user = in.readObject();
     }
 
