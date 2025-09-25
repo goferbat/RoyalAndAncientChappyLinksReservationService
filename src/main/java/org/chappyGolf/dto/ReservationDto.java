@@ -3,10 +3,9 @@ package org.chappyGolf.dto;
 public class ReservationDto {
     private int userId;
     private int teeTimeId;
-    private String sourceId;   // Square payment token
-    private long amountCents;  // e.g., 7500 for $75.00
-    // getters/setters
-
+    private String sourceId;
+    private long amountCents;
+    private int partySize; // number of players (1–6)
 
     public int getUserId() {
         return userId;
@@ -39,4 +38,14 @@ public class ReservationDto {
     public void setAmountCents(long amountCents) {
         this.amountCents = amountCents;
     }
+
+    public int getPartySize() {
+        return partySize;
+    }
+
+    public void setPartySize(int partySize) {
+        this.partySize = partySize;
+    }
+
+    // getters/setters
 }

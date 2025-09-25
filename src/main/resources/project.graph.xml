@@ -1,9 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <graphs xmlns="http://cayenne.apache.org/schema/10/graph">
-	<graph type="ER" scale="1.0">
-		<entity name="tee_time" x="585.79" y="471.38" width="60.0" height="82.0"/>
-		<entity name="reservation" x="273.1" y="336.86" width="79.0" height="98.0"/>
-		<entity name="payment" x="0.0" y="540.14" width="124.0" height="130.0"/>
-		<entity name="user" x="231.94" y="0.0" width="67.0" height="98.0"/>
-	</graph>
+	<graph type="ER" scale="1.0"/>
 </graphs>
