@@ -234,7 +234,7 @@ public class GolfController {
     }
 
     @DeleteMapping("/reservations/{id}/refund")
-    public void cancelReservation(@PathVariable int id) throws com.squareup.square.core.SquareApiException {
+    public void refundReservation(@PathVariable int id) throws com.squareup.square.core.SquareApiException {
         // Look up local records
         Reservation reservation = org.apache.cayenne.Cayenne.objectForPK(context, Reservation.class, id);
         if (reservation == null) throw new RuntimeException("Reservation not found");
