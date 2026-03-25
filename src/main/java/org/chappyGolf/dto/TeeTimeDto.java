@@ -3,16 +3,16 @@ package org.chappyGolf.dto;
 import java.time.LocalDateTime;
 
 public class TeeTimeDto {
-    private LocalDateTime slot;
+    private LocalDateTime startTime;
     private Integer capacity;
     // getters/setters
 
-    public LocalDateTime getSlot() {
-        return slot;
+    public LocalDateTime getstartTime() {
+        return startTime;
     }
 
-    public void setSlot(LocalDateTime slot) {
-        this.slot = slot;
+    public void setstartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
     }
 
     public Integer getCapacity() {

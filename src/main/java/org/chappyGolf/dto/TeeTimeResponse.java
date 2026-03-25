@@ -5,13 +5,13 @@ import java.util.List;
 
 public class TeeTimeResponse {
     private int id;
-    private LocalDateTime slot;
+    private LocalDateTime startTime;
     private int capacity;
     private List<TeeTimeTierDto> tiers;
 
-    public TeeTimeResponse(int id, LocalDateTime slot, int capacity, List<TeeTimeTierDto> tiers) {
+    public TeeTimeResponse(int id, LocalDateTime startTime, int capacity, List<TeeTimeTierDto> tiers) {
         this.id = id;
-        this.slot = slot;
+        this.startTime = startTime;
         this.capacity = capacity;
         this.tiers = tiers;
     }
@@ -21,8 +21,8 @@ public class TeeTimeResponse {
         return id;
     }
 
-    public LocalDateTime getSlot() {
-        return slot;
+    public LocalDateTime getstartTime() {
+        return startTime;
     }
 
     public int getCapacity() {

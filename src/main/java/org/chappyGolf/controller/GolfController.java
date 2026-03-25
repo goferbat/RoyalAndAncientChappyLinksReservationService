@@ -10,6 +10,7 @@ import org.apache.cayenne.ObjectContext;
 import org.apache.cayenne.query.ObjectSelect;
 import org.chappyGolf.model.cayenne.Payment;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -25,13 +26,16 @@ public class GolfController {
     private final ObjectContext context;
     private final SquareClient squareClient;
     private final String squareLocationId;
+    private final org.chappyGolf.service.TeeTimeSeedService teeTimeSeedService;
 
     public GolfController(ObjectContext context,
                           SquareClient squareClient,
-                          @Value("${square.location.id}") String squareLocationId) {
+                          @Value("${square.location.id}") String squareLocationId,
+                          org.chappyGolf.service.TeeTimeSeedService teeTimeSeedService) {
         this.context = context;
         this.squareClient = squareClient;
         this.squareLocationId = squareLocationId;
+        this.teeTimeSeedService = teeTimeSeedService;
     }
 
     // ---- Users ----
@@ -40,6 +44,7 @@ public class GolfController {
         Users user = context.newObject(Users.class);
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
+        user.setCreatedAt(LocalDateTime.now());
         context.commitChanges();
     }
 
@@ -67,21 +72,16 @@ public class GolfController {
     @PostMapping("/tee-times/post")
     public TeeTime createTeeTime(@RequestBody TeeTimeDto dto) {
         TeeTime teeTime = context.newObject(TeeTime.class);
-        teeTime.setStartTime(dto.getSlot());
+        teeTime.setStartTime(dto.getstartTime());
         teeTime.setCapacity(dto.getCapacity());
         context.commitChanges();
         return teeTime;
     }
 
-    @PostMapping("/tee-times/seed")
-    public void seedTeeTimes() {
-        // Create slots from 9:00 AM to 5:00 PM
-        for (int hour = 9; hour <= 17; hour++) {
-            TeeTime teeTime = context.newObject(TeeTime.class);
-            teeTime.setStartTime(LocalDateTime.of(LocalDate.now(), LocalTime.of(hour, 0)));
-            teeTime.setCapacity(8);
-        }
-        context.commitChanges();
+    @PostMapping("/tee-times/seed/{date}")
+    public ResponseEntity<String> seedTeeTimes(@PathVariable String date) {
+        teeTimeSeedService.seedForDate(LocalDate.parse(date));
+        return ResponseEntity.ok("Seeded tee times for " + date);
     }
 
     @GetMapping("/reservations/{id}/status")
@@ -117,10 +117,10 @@ public class GolfController {
     }
 
     @PostMapping("/reservations")
-    public Reservation reserve(@RequestBody ReservationDto dto) throws SquareApiException {
+    public ReservationStatusResponse reserve(@RequestBody ReservationDto dto) throws SquareApiException {
         Users user = Cayenne.objectForPK(context, Users.class, dto.getUserId());
         TeeTime teeTime = Cayenne.objectForPK(context, TeeTime.class, dto.getTeeTimeId());
-        TeeTimeTier tier = Cayenne.objectForPK(context, TeeTimeTier.class, dto.getTeeTimeTier());
+        TeeTimeTier tier = Cayenne.objectForPK(context, TeeTimeTier.class, dto.geTeeTimeTierId());
 
         if (user == null || teeTime == null || tier == null) {
             throw new RuntimeException("Invalid booking data");
@@ -174,10 +174,18 @@ public class GolfController {
         payment.setCreatedAt(LocalDateTime.now());
 
         context.commitChanges();
-        return reservation;
+        int reservationId = (Integer) reservation.getObjectId()
+                .getIdSnapshot()
+                .get("id");
+
+        return new ReservationStatusResponse(
+                reservationId,
+                status,
+                reservation.getPartySize(),
+                teeTime.getStartTime()
+        );
     }
 
-    @PostMapping("/reservations/{id}/capture")
     public void captureReservationPayment(@PathVariable int id) throws SquareApiException {
         Reservation reservation = Cayenne.objectForPK(context, Reservation.class, id);
         if (reservation == null) throw new RuntimeException("Reservation not found");
@@ -203,7 +211,6 @@ public class GolfController {
         context.commitChanges();
     }
 
-    @PostMapping("/reservations/{id}/cancel-payment")
     public void cancelReservationPayment(@PathVariable int id) throws SquareApiException {
         Reservation reservation = Cayenne.objectForPK(context, Reservation.class, id);
         if (reservation == null) throw new RuntimeException("Reservation not found");
@@ -233,7 +240,6 @@ public class GolfController {
         context.commitChanges();
     }
 
-    @DeleteMapping("/reservations/{id}/refund")
     public void refundReservation(@PathVariable int id) throws com.squareup.square.core.SquareApiException {
         // Look up local records
         Reservation reservation = org.apache.cayenne.Cayenne.objectForPK(context, Reservation.class, id);
