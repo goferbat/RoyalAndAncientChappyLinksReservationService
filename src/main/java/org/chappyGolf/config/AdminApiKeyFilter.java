@@ -13,7 +13,7 @@ import java.io.IOException;
 @Component
 public class AdminApiKeyFilter extends OncePerRequestFilter {
 
-    @Value("${admin.api.key}")
+    @Value("${ADMIN_API_KEY}")
     private String adminApiKey;
 
     @Override
@@ -22,6 +22,12 @@ public class AdminApiKeyFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String path = request.getRequestURI();
+
+        // Let CORS preflight requests through
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         if (!path.startsWith("/api/admin")) {
             filterChain.doFilter(request, response);
