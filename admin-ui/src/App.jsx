@@ -39,9 +39,9 @@ function canRefund(status) {
 export default function App() {
   const [baseUrl, setBaseUrl] = useState("http://localhost:8081");
   const [apiKey, setApiKey] = useState("dev-secret-key");
-  const [date, setDate] = useState("2026-03-26");
+  const [date, setDate] = useState("2026-03-29");
   const [search, setSearch] = useState("");
-  const [rows, setRows] = useState([]);
+  const [teeTimes, setTeeTimes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingAction, setLoadingAction] = useState({});
   const [message, setMessage] = useState("");
@@ -51,52 +51,41 @@ export default function App() {
     () => ({
       "Content-Type": "application/json",
       "X-ADMIN-API-KEY": apiKey,
-      // If your backend expects x-api-key instead, swap the line above for:
-      // "x-api-key": apiKey,
     }),
     [apiKey]
   );
 
-  const groupedRows = useMemo(() => {
+  const filteredTeeTimes = useMemo(() => {
     const searchText = search.toLowerCase().trim();
 
-    const filtered = rows.filter((row) => {
-      const text = [
-        row.customerName,
-        row.customerEmail,
-        row.slotLabel,
-        row.tierName,
-        row.paymentStatus,
-        row.reservationId,
-        row.teeTimeId,
-        row.startTime,
+    if (!searchText) return teeTimes;
+
+    return teeTimes.filter((teeTime) => {
+      const reservationText = (teeTime.reservations || [])
+        .flatMap((r) => [
+          r.customerName,
+          r.customerEmail,
+          r.tierName,
+          r.paymentStatus,
+          r.reservationId,
+        ])
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      const teeTimeText = [
+        teeTime.slotLabel,
+        teeTime.teeTimeId,
+        teeTime.blockedReason,
+        teeTime.blocked ? "blocked" : "open",
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
 
-      return text.includes(searchText);
+      return `${teeTimeText} ${reservationText}`.includes(searchText);
     });
-
-    const groups = new Map();
-
-    for (const row of filtered) {
-      const key = `${row.teeTimeId}-${row.startTime}`;
-      if (!groups.has(key)) {
-        groups.set(key, {
-          teeTimeId: row.teeTimeId,
-          startTime: row.startTime,
-          slotLabel: row.slotLabel,
-          reservations: [],
-        });
-      }
-      groups.get(key).reservations.push(row);
-    }
-
-    return Array.from(groups.values()).sort((a, b) =>
-      (a.startTime || "").localeCompare(b.startTime || "")
-    );
-  }, [rows, search]);
+  }, [teeTimes, search]);
 
   async function loadTeeSheet() {
     setLoading(true);
@@ -114,10 +103,10 @@ export default function App() {
       }
 
       const data = await res.json();
-      setRows(Array.isArray(data) ? data : []);
+      setTeeTimes(Array.isArray(data) ? data : []);
       setMessage("Tee sheet loaded.");
     } catch (err) {
-      setRows([]);
+      setTeeTimes([]);
       setError(err.message || "Failed to load tee sheet.");
     } finally {
       setLoading(false);
@@ -131,14 +120,13 @@ export default function App() {
     setMessage("");
 
     try {
-      const method = action === "cancel" ? "DELETE" : "POST";
       const url =
         action === "cancel"
-          ? `${baseUrl}/api/admin/reservations/${reservationId}`
+          ? `${baseUrl}/api/admin/reservations/${reservationId}/cancel`
           : `${baseUrl}/api/admin/reservations/${reservationId}/${action}`;
 
       const res = await fetch(url, {
-        method,
+        method: "POST",
         headers,
       });
 
@@ -184,15 +172,59 @@ export default function App() {
     }
   }
 
-  function isActionLoading(reservationId, action) {
-    return !!loadingAction[`${action}-${reservationId}`];
+  async function toggleBlocked(teeTime) {
+    const actionKey = `block-${teeTime.teeTimeId}`;
+    setLoadingAction((prev) => ({ ...prev, [actionKey]: true }));
+    setError("");
+    setMessage("");
+
+    try {
+      let blockedReason = teeTime.blockedReason || "";
+
+      if (!teeTime.blocked) {
+        blockedReason =
+          window.prompt(
+            `Reason for blocking ${teeTime.slotLabel}?`,
+            teeTime.blockedReason || "Private event"
+          ) || "";
+      }
+
+      const res = await fetch(`${baseUrl}/api/admin/tee-times/${teeTime.teeTimeId}/block`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          blocked: !teeTime.blocked,
+          blockedReason: !teeTime.blocked ? blockedReason : null,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      setMessage(
+        !teeTime.blocked
+          ? `Blocked tee time ${teeTime.slotLabel}.`
+          : `Unblocked tee time ${teeTime.slotLabel}.`
+      );
+
+      await loadTeeSheet();
+    } catch (err) {
+      setError(err.message || "Failed to update tee time.");
+    } finally {
+      setLoadingAction((prev) => ({ ...prev, [actionKey]: false }));
+    }
+  }
+
+  function isActionLoading(id, action) {
+    return !!loadingAction[`${action}-${id}`];
   }
 
   return (
     <div className="page">
       <div className="container">
         <h1>Royal Chappy Admin</h1>
-        <p className="subtitle">Tee sheet, check-in, and payment actions</p>
+        <p className="subtitle">Tee sheet, blocking, check-in, and payment actions</p>
 
         <div className="panel controls">
           <div className="field">
@@ -243,87 +275,122 @@ export default function App() {
         {error && <div className="message error">{error}</div>}
 
         <div className="teeSheet">
-          {groupedRows.length === 0 ? (
-            <div className="panel">No reservations found for this date.</div>
+          {filteredTeeTimes.length === 0 ? (
+            <div className="panel">No tee times found for this date.</div>
           ) : (
-            groupedRows.map((group) => (
+            filteredTeeTimes.map((teeTime) => (
               <div
-                key={`${group.teeTimeId}-${group.startTime}`}
-                className="panel teeGroup"
+                key={`${teeTime.teeTimeId}-${teeTime.startTime}`}
+                className={`panel teeGroup ${teeTime.blocked ? "blockedGroup" : ""}`}
               >
                 <div className="teeGroupHeader">
                   <div>
-                    <h2>{group.slotLabel}</h2>
-                    <div className="muted">Tee Time ID {group.teeTimeId}</div>
+                    <h2>{teeTime.slotLabel}</h2>
+                    <div className="muted">Tee Time ID {teeTime.teeTimeId}</div>
+                    <div className="muted">
+                      Capacity {teeTime.capacity} · Remaining {teeTime.spotsRemaining}
+                    </div>
+                    {teeTime.blocked && (
+                      <div className="message error inlineMessage">
+                        Blocked{teeTime.blockedReason ? `: ${teeTime.blockedReason}` : ""}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="buttonRow">
+                    <button
+                      onClick={() => toggleBlocked(teeTime)}
+                      disabled={loading || isActionLoading(teeTime.teeTimeId, "block")}
+                      className={teeTime.blocked ? "secondary" : ""}
+                    >
+                      {isActionLoading(teeTime.teeTimeId, "block")
+                        ? "Saving..."
+                        : teeTime.blocked
+                        ? "Unblock Tee Time"
+                        : "Block Tee Time"}
+                    </button>
                   </div>
                 </div>
 
-                <div className="reservationList">
-                  {group.reservations.map((row) => {
-                    const status = normalizeStatus(row.paymentStatus);
-
-                    return (
-                      <div key={row.reservationId} className="reservationCard">
-                        <div>
-                          <div className="reservationTop">
-                            <strong>{row.customerName}</strong>
-                            <span className={statusClass(status)}>{status}</span>
-                          </div>
-                          <div className="muted">{row.customerEmail}</div>
-                          <div className="details">
-                            <span>Reservation #{row.reservationId}</span>
-                            <span>Party {row.partySize}</span>
-                            <span>{row.tierName}</span>
-                            <span>{formatMoney(row.amountCents)}</span>
-                          </div>
-                        </div>
-
-                        <div className="buttonRow">
-                          <button
-                            onClick={() => runAction(row.reservationId, "capture")}
-                            disabled={
-                              loading ||
-                              isActionLoading(row.reservationId, "capture") ||
-                              !canCapture(status)
-                            }
-                          >
-                            {isActionLoading(row.reservationId, "capture")
-                              ? "Capturing..."
-                              : "Capture"}
-                          </button>
-
-                          <button
-                            onClick={() => runAction(row.reservationId, "cancel")}
-                            disabled={
-                              loading ||
-                              isActionLoading(row.reservationId, "cancel") ||
-                              !canCancel(status)
-                            }
-                            className="secondary"
-                          >
-                            {isActionLoading(row.reservationId, "cancel")
-                              ? "Cancelling..."
-                              : "Cancel"}
-                          </button>
-
-                          <button
-                            onClick={() => runAction(row.reservationId, "refund")}
-                            disabled={
-                              loading ||
-                              isActionLoading(row.reservationId, "refund") ||
-                              !canRefund(status)
-                            }
-                            className="secondary"
-                          >
-                            {isActionLoading(row.reservationId, "refund")
-                              ? "Refunding..."
-                              : "Refund"}
-                          </button>
-                        </div>
+                {teeTime.reservations?.length === 0 ? (
+                  <div className="reservationCard">
+                    <div>
+                      <strong>No reservations</strong>
+                      <div className="muted">
+                        This tee time is currently empty.
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="reservationList">
+                    {teeTime.reservations.map((row) => {
+                      const status = normalizeStatus(row.paymentStatus);
+
+                      return (
+                        <div key={row.reservationId} className="reservationCard">
+                          <div>
+                            <div className="reservationTop">
+                              <strong>{row.customerName}</strong>
+                              <span className={statusClass(status)}>{status}</span>
+                            </div>
+                            <div className="muted">{row.customerEmail}</div>
+                            <div className="details">
+                              <span>Party {row.partySize}</span>
+                              <span>
+                                Transportation: {row.transportation ? "Yes" : "No"}
+                              </span>
+                              <span>{row.tierName}</span>
+                              <span>{formatMoney(row.amountCents)}</span>
+                            </div>
+                          </div>
+
+                          <div className="buttonRow">
+                            <button
+                              onClick={() => runAction(row.reservationId, "capture")}
+                              disabled={
+                                loading ||
+                                isActionLoading(row.reservationId, "capture") ||
+                                !canCapture(status)
+                              }
+                            >
+                              {isActionLoading(row.reservationId, "capture")
+                                ? "Capturing..."
+                                : "Capture"}
+                            </button>
+
+                            <button
+                              onClick={() => runAction(row.reservationId, "cancel")}
+                              disabled={
+                                loading ||
+                                isActionLoading(row.reservationId, "cancel") ||
+                                !canCancel(status)
+                              }
+                              className="secondary"
+                            >
+                              {isActionLoading(row.reservationId, "cancel")
+                                ? "Cancelling..."
+                                : "Cancel"}
+                            </button>
+
+                            <button
+                              onClick={() => runAction(row.reservationId, "refund")}
+                              disabled={
+                                loading ||
+                                isActionLoading(row.reservationId, "refund") ||
+                                !canRefund(status)
+                              }
+                              className="secondary"
+                            >
+                              {isActionLoading(row.reservationId, "refund")
+                                ? "Refunding..."
+                                : "Refund"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ))
           )}

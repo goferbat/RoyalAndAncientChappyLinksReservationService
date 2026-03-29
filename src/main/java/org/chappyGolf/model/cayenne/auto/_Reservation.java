@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.apache.cayenne.BaseDataObject;
+import org.apache.cayenne.exp.property.BaseProperty;
 import org.apache.cayenne.exp.property.DateProperty;
 import org.apache.cayenne.exp.property.EntityProperty;
 import org.apache.cayenne.exp.property.ListProperty;
@@ -31,6 +32,7 @@ public abstract class _Reservation extends BaseDataObject {
 
     public static final DateProperty<LocalDateTime> CREATED_AT = PropertyFactory.createDate("createdAt", LocalDateTime.class);
     public static final NumericProperty<Integer> PARTY_SIZE = PropertyFactory.createNumeric("partySize", Integer.class);
+    public static final BaseProperty<Boolean> TRANSPORTATION = PropertyFactory.createBase("transportation", Boolean.class);
     public static final ListProperty<Payment> PAYMENTS = PropertyFactory.createList("payments", Payment.class);
     public static final EntityProperty<TeeTime> TEE_TIME = PropertyFactory.createEntity("teeTime", TeeTime.class);
     public static final EntityProperty<TeeTimeTier> TIER = PropertyFactory.createEntity("tier", TeeTimeTier.class);
@@ -38,6 +40,7 @@ public abstract class _Reservation extends BaseDataObject {
 
     protected LocalDateTime createdAt;
     protected int partySize;
+    protected boolean transportation;
 
     protected Object payments;
     protected Object teeTime;
@@ -62,6 +65,16 @@ public abstract class _Reservation extends BaseDataObject {
     public int getPartySize() {
         beforePropertyRead("partySize");
         return this.partySize;
+    }
+
+    public void setTransportation(boolean transportation) {
+        beforePropertyWrite("transportation", this.transportation, transportation);
+        this.transportation = transportation;
+    }
+
+	public boolean isTransportation() {
+        beforePropertyRead("transportation");
+        return this.transportation;
     }
 
     public void addToPayments(Payment obj) {
@@ -112,6 +125,8 @@ public abstract class _Reservation extends BaseDataObject {
                 return this.createdAt;
             case "partySize":
                 return this.partySize;
+            case "transportation":
+                return this.transportation;
             case "payments":
                 return this.payments;
             case "teeTime":
@@ -137,6 +152,9 @@ public abstract class _Reservation extends BaseDataObject {
                 break;
             case "partySize":
                 this.partySize = val == null ? 0 : (int)val;
+                break;
+            case "transportation":
+                this.transportation = val == null ? false : (boolean)val;
                 break;
             case "payments":
                 this.payments = val;
@@ -168,6 +186,7 @@ public abstract class _Reservation extends BaseDataObject {
         super.writeState(out);
         out.writeObject(this.createdAt);
         out.writeInt(this.partySize);
+        out.writeBoolean(this.transportation);
         out.writeObject(this.payments);
         out.writeObject(this.teeTime);
         out.writeObject(this.tier);
@@ -179,6 +198,7 @@ public abstract class _Reservation extends BaseDataObject {
         super.readState(in);
         this.createdAt = (LocalDateTime)in.readObject();
         this.partySize = in.readInt();
+        this.transportation = in.readBoolean();
         this.payments = in.readObject();
         this.teeTime = in.readObject();
         this.tier = in.readObject();

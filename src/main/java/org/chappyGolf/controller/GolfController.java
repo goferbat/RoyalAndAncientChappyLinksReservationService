@@ -210,7 +210,9 @@ public class GolfController {
                         tt.getCapacity(),
                         tiers.stream()
                                 .map(t -> new TeeTimeTierDto(Cayenne.intPKForObject(t), t.getName(), t.getPriceCents()))
-                                .toList()
+                                .toList(),
+                        tt.isBlocked(),
+                        tt.getBlockedReason()
                 ))
                 .toList();
     }
@@ -401,6 +403,7 @@ public class GolfController {
                     reservation.getTeeTime().getStartTime(),
                     reservation.getTier().getName(),
                     reservation.getPartySize(),
+                    reservation.isTransportation(),
                     totalAmount,
                     reservationId
             );
@@ -411,6 +414,7 @@ public class GolfController {
                     reservation.getTeeTime().getStartTime(),
                     reservation.getTier().getName(),
                     reservation.getPartySize(),
+                    reservation.isTransportation(),
                     totalAmount,
                     reservationId
             );

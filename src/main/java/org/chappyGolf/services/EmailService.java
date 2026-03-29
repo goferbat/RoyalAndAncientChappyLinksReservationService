@@ -92,6 +92,7 @@ public class EmailService {
             LocalDateTime teeTime,
             String tierName,
             int partySize,
+            Boolean transportation,
             long amountCents,
             int reservationId
     ) {
@@ -111,6 +112,7 @@ public class EmailService {
                         "Tee Time: " + formattedTeeTime + "\n" +
                         "Tier: " + tierName + "\n" +
                         "Party Size: " + partySize + "\n" +
+                        "Transportation: " + transportation + "\n" +
                         "Amount Charged: " + formattedAmount + "\n"
         );
 
@@ -123,6 +125,7 @@ public class EmailService {
             LocalDateTime teeTime,
             String tierName,
             int partySize,
+            Boolean transportation,
             long amountCents,
             int reservationId
     ) {
@@ -141,6 +144,7 @@ public class EmailService {
                         "Tee Time: " + formattedTeeTime + "\n" +
                         "Tier: " + tierName + "\n" +
                         "Party Size: " + partySize + "\n" +
+                        "Transporation: " + transportation + "\n" +
                         "Amount Charged: " + formattedAmount + "\n\n" +
                         "We look forward to seeing you."
         );

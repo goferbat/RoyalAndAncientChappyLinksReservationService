@@ -11,6 +11,7 @@ public class AdminReservationDetailResponse {
     private LocalDateTime startTime;
     private String tierName;
     private int partySize;
+    private boolean transportation;
     private long amountCents;
     private String paymentStatus;
     private String squarePaymentId;
@@ -24,6 +25,7 @@ public class AdminReservationDetailResponse {
             LocalDateTime startTime,
             String tierName,
             int partySize,
+            boolean transportation,
             long amountCents,
             String paymentStatus,
             String squarePaymentId
@@ -36,6 +38,7 @@ public class AdminReservationDetailResponse {
         this.startTime = startTime;
         this.tierName = tierName;
         this.partySize = partySize;
+        this.transportation = transportation;
         this.amountCents = amountCents;
         this.paymentStatus = paymentStatus;
         this.squarePaymentId = squarePaymentId;
@@ -49,6 +52,7 @@ public class AdminReservationDetailResponse {
     public LocalDateTime getStartTime() { return startTime; }
     public String getTierName() { return tierName; }
     public int getPartySize() { return partySize; }
+    public boolean getTransportation() {return this.transportation; }
     public long getAmountCents() { return amountCents; }
     public String getPaymentStatus() { return paymentStatus; }
     public String getSquarePaymentId() { return squarePaymentId; }

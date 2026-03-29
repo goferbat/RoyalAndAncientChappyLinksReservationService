@@ -7,10 +7,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.apache.cayenne.BaseDataObject;
+import org.apache.cayenne.exp.property.BaseProperty;
 import org.apache.cayenne.exp.property.DateProperty;
 import org.apache.cayenne.exp.property.ListProperty;
 import org.apache.cayenne.exp.property.NumericProperty;
 import org.apache.cayenne.exp.property.PropertyFactory;
+import org.apache.cayenne.exp.property.StringProperty;
 import org.chappyGolf.model.cayenne.Reservation;
 
 /**
@@ -25,21 +27,45 @@ public abstract class _TeeTime extends BaseDataObject {
 
     public static final String ID_PK_COLUMN = "id";
 
+    public static final BaseProperty<Boolean> BLOCKED = PropertyFactory.createBase("blocked", Boolean.class);
+    public static final StringProperty<String> BLOCKED_REASON = PropertyFactory.createString("blockedReason", String.class);
     public static final NumericProperty<Integer> CAPACITY = PropertyFactory.createNumeric("capacity", Integer.class);
     public static final DateProperty<LocalDateTime> START_TIME = PropertyFactory.createDate("startTime", LocalDateTime.class);
-    public static final ListProperty<Reservation> RESERVATIONSS = PropertyFactory.createList("reservationss", Reservation.class);
+    public static final ListProperty<Reservation> RESERVATIONS = PropertyFactory.createList("reservations", Reservation.class);
 
+    protected boolean blocked;
+    protected String blockedReason;
     protected int capacity;
     protected LocalDateTime startTime;
 
-    protected Object reservationss;
+    protected Object reservations;
+
+    public void setBlocked(boolean blocked) {
+        beforePropertyWrite("blocked", this.blocked, blocked);
+        this.blocked = blocked;
+    }
+
+	public boolean isBlocked() {
+        beforePropertyRead("blocked");
+        return this.blocked;
+    }
+
+    public void setBlockedReason(String blockedReason) {
+        beforePropertyWrite("blockedReason", this.blockedReason, blockedReason);
+        this.blockedReason = blockedReason;
+    }
+
+    public String getBlockedReason() {
+        beforePropertyRead("blockedReason");
+        return this.blockedReason;
+    }
 
     public void setCapacity(int capacity) {
         beforePropertyWrite("capacity", this.capacity, capacity);
         this.capacity = capacity;
     }
 
-    public int getCapacity() {
+    public Integer getCapacity() {
         beforePropertyRead("capacity");
         return this.capacity;
     }
@@ -54,17 +80,17 @@ public abstract class _TeeTime extends BaseDataObject {
         return this.startTime;
     }
 
-    public void addToReservationss(Reservation obj) {
-        addToManyTarget("reservationss", obj, true);
+    public void addToReservations(Reservation obj) {
+        addToManyTarget("reservations", obj, true);
     }
 
-    public void removeFromReservationss(Reservation obj) {
-        removeToManyTarget("reservationss", obj, true);
+    public void removeFromReservations(Reservation obj) {
+        removeToManyTarget("reservations", obj, true);
     }
 
     @SuppressWarnings("unchecked")
-    public List<Reservation> getReservationss() {
-        return (List<Reservation>)readProperty("reservationss");
+    public List<Reservation> getReservations() {
+        return (List<Reservation>)readProperty("reservations");
     }
 
     @Override
@@ -74,12 +100,16 @@ public abstract class _TeeTime extends BaseDataObject {
         }
 
         switch(propName) {
+            case "blocked":
+                return this.blocked;
+            case "blockedReason":
+                return this.blockedReason;
             case "capacity":
                 return this.capacity;
             case "startTime":
                 return this.startTime;
-            case "reservationss":
-                return this.reservationss;
+            case "reservations":
+                return this.reservations;
             default:
                 return super.readPropertyDirectly(propName);
         }
@@ -92,14 +122,20 @@ public abstract class _TeeTime extends BaseDataObject {
         }
 
         switch (propName) {
+            case "blocked":
+                this.blocked = val == null ? false : (boolean)val;
+                break;
+            case "blockedReason":
+                this.blockedReason = (String)val;
+                break;
             case "capacity":
                 this.capacity = val == null ? 0 : (int)val;
                 break;
             case "startTime":
                 this.startTime = (LocalDateTime)val;
                 break;
-            case "reservationss":
-                this.reservationss = val;
+            case "reservations":
+                this.reservations = val;
                 break;
             default:
                 super.writePropertyDirectly(propName, val);
@@ -117,17 +153,21 @@ public abstract class _TeeTime extends BaseDataObject {
     @Override
     protected void writeState(ObjectOutputStream out) throws IOException {
         super.writeState(out);
+        out.writeBoolean(this.blocked);
+        out.writeObject(this.blockedReason);
         out.writeInt(this.capacity);
         out.writeObject(this.startTime);
-        out.writeObject(this.reservationss);
+        out.writeObject(this.reservations);
     }
 
     @Override
     protected void readState(ObjectInputStream in) throws IOException, ClassNotFoundException {
         super.readState(in);
+        this.blocked = in.readBoolean();
+        this.blockedReason = (String)in.readObject();
         this.capacity = in.readInt();
         this.startTime = (LocalDateTime)in.readObject();
-        this.reservationss = in.readObject();
+        this.reservations = in.readObject();
     }
 
 }

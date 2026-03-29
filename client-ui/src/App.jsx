@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { CreditCard, PaymentForm } from "react-square-web-payments-sdk";
 import "./App.css";
 
+const TRANSPORTATION_PRICE_CENTS = 1000;
+
 function formatMoney(amountCents) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -62,6 +64,7 @@ export default function App() {
     teeTimeTierId: null,
     teeTimeTierName: "",
     teeTimeTierPriceCents: 0,
+    transportation: false,
   });
 
   useEffect(() => {
@@ -84,8 +87,14 @@ export default function App() {
   }, [filteredTeeTimes, form.teeTimeId]);
 
   const totalAmountCents = useMemo(() => {
-    return Number(form.partySize || 0) * Number(form.teeTimeTierPriceCents || 0);
-  }, [form.partySize, form.teeTimeTierPriceCents]);
+    const partySize = Number(form.partySize || 0);
+    const tierTotal = partySize * Number(form.teeTimeTierPriceCents || 0);
+    const transportationTotal = form.transportation
+      ? partySize * TRANSPORTATION_PRICE_CENTS
+      : 0;
+
+    return tierTotal + transportationTotal;
+  }, [form.partySize, form.teeTimeTierPriceCents, form.transportation]);
 
   async function loadTeeTimes() {
     setLoadingSlots(true);
@@ -117,6 +126,10 @@ export default function App() {
   }
 
   function selectSlot(slot) {
+    if (slot?.blocked) {
+      return;
+    }
+
     setForm((prev) => ({
       ...prev,
       teeTimeId: slot.id,
@@ -124,10 +137,15 @@ export default function App() {
       teeTimeTierId: null,
       teeTimeTierName: "",
       teeTimeTierPriceCents: 0,
+      transportation: false,
     }));
   }
 
   function selectTier(slot, tier) {
+    if (slot?.blocked) {
+      return;
+    }
+
     setForm((prev) => ({
       ...prev,
       teeTimeId: slot.id,
@@ -136,6 +154,23 @@ export default function App() {
       teeTimeTierName: tier.name,
       teeTimeTierPriceCents: tier.priceCents,
     }));
+  }
+
+  function toggleTransportation(slot) {
+    if (slot?.blocked) {
+      return;
+    }
+
+    setForm((prev) => {
+      const sameSlot = Number(prev.teeTimeId) === Number(slot.id);
+
+      return {
+        ...prev,
+        teeTimeId: slot.id,
+        teeTimeLabel: formatSlot(slot.startTime),
+        transportation: sameSlot ? !prev.transportation : true,
+      };
+    });
   }
 
   function resetForm() {
@@ -148,6 +183,7 @@ export default function App() {
       teeTimeTierId: null,
       teeTimeTierName: "",
       teeTimeTierPriceCents: 0,
+      transportation: false,
     });
     setSuccess("");
     setError("");
@@ -164,6 +200,12 @@ export default function App() {
 
     if (!form.teeTimeId) return "Please select a tee time.";
     if (!form.teeTimeTierId) return "Please select a tier.";
+
+    if (selectedSlot?.blocked) {
+      return selectedSlot.blockedReason?.trim()
+        ? `This tee time is unavailable: ${selectedSlot.blockedReason}`
+        : "This tee time is currently unavailable.";
+    }
 
     if (selectedSlot && partySize > Number(selectedSlot.capacity || 0)) {
       return "Party size is larger than remaining capacity.";
@@ -191,6 +233,7 @@ export default function App() {
         teeTimeId: Number(form.teeTimeId),
         teeTimeTierId: Number(form.teeTimeTierId),
         partySize: Number(form.partySize),
+        transportation: form.transportation,
         sourceId,
       };
 
@@ -221,6 +264,7 @@ export default function App() {
         teeTimeTierId: null,
         teeTimeTierName: "",
         teeTimeTierPriceCents: 0,
+        transportation: false,
       }));
     } catch (err) {
       setError(err.message || "Failed to create reservation.");
@@ -302,6 +346,10 @@ export default function App() {
                   const isSelected =
                     Number(form.teeTimeId) === Number(slot.id);
                   const soldOut = Number(slot.capacity || 0) < 1;
+                  const blocked = !!slot.blocked;
+                  const unavailable = soldOut || blocked;
+                  const transportationSelected =
+                    isSelected && form.transportation;
 
                   return (
                     <div
@@ -316,14 +364,28 @@ export default function App() {
                           <div className="muted">Tee Time #{slot.id}</div>
                         </div>
 
-                        <div className={`badge ${soldOut ? "soldOut" : ""}`}>
-                          {soldOut
+                        <div
+                          className={`badge ${
+                            blocked ? "blockedBadge" : soldOut ? "soldOut" : ""
+                          }`}
+                        >
+                          {blocked
+                            ? "Blocked"
+                            : soldOut
                             ? "Sold out"
                             : `${slot.capacity} spot${
                                 Number(slot.capacity) === 1 ? "" : "s"
                               } left`}
                         </div>
                       </div>
+
+                      {blocked && (
+                        <div className="blockedNotice">
+                          {slot.blockedReason?.trim()
+                            ? `Blocked: ${slot.blockedReason}`
+                            : "This tee time is unavailable."}
+                        </div>
+                      )}
 
                       <div className="tierRow">
                         {(slot.tiers || []).map((tier) => {
@@ -338,7 +400,7 @@ export default function App() {
                               className={`tierButton ${
                                 tierSelected ? "selectedTier" : ""
                               }`}
-                              disabled={soldOut}
+                              disabled={unavailable}
                               onClick={() => selectTier(slot, tier)}
                             >
                               <span>{tier.name}</span>
@@ -350,14 +412,34 @@ export default function App() {
                         })}
                       </div>
 
+                      <div className="tierRow">
+                        <button
+                          type="button"
+                          className={`tierButton ${
+                            transportationSelected ? "selectedTier" : ""
+                          }`}
+                          disabled={unavailable}
+                          onClick={() => toggleTransportation(slot)}
+                        >
+                          <span>Transportation</span>
+                          <span className="tierPrice">
+                            {formatMoney(TRANSPORTATION_PRICE_CENTS)} / player
+                          </span>
+                        </button>
+                      </div>
+
                       <div className="buttonRow">
                         <button
                           type="button"
                           className="secondary"
-                          disabled={soldOut}
+                          disabled={unavailable}
                           onClick={() => selectSlot(slot)}
                         >
-                          {isSelected ? "Selected" : "Select Tee Time"}
+                          {blocked
+                            ? "Blocked"
+                            : isSelected
+                            ? "Selected"
+                            : "Select Tee Time"}
                         </button>
                       </div>
                     </div>
@@ -418,8 +500,23 @@ export default function App() {
                   <strong>{form.teeTimeTierName || "—"}</strong>
                 </div>
                 <div className="summaryRow">
+                  <span>Transportation</span>
+                  <strong>{form.transportation ? "Yes" : "No"}</strong>
+                </div>
+                <div className="summaryRow">
                   <span>Party Size</span>
                   <strong>{form.partySize || "—"}</strong>
+                </div>
+                <div className="summaryRow">
+                  <span>Transportation Cost</span>
+                  <strong>
+                    {form.transportation
+                      ? formatMoney(
+                          Number(form.partySize || 0) *
+                            TRANSPORTATION_PRICE_CENTS
+                        )
+                      : formatMoney(0)}
+                  </strong>
                 </div>
                 <div className="summaryRow total">
                   <span>Total</span>

@@ -5,10 +5,13 @@ import org.apache.cayenne.Cayenne;
 import org.apache.cayenne.ObjectContext;
 import org.apache.cayenne.query.ObjectSelect;
 import org.chappyGolf.dto.AdminReservationDetailResponse;
+import org.chappyGolf.dto.AdminTeeTimeDto;
+import org.chappyGolf.dto.AdminTeeTimeReservationDto;
 import org.chappyGolf.dto.ReservationStatusResponse;
-import org.chappyGolf.dto.TeeSheetReservationDto;
+import org.chappyGolf.dto.UpdateTeeTimeBlockRequest;
 import org.chappyGolf.model.cayenne.Payment;
 import org.chappyGolf.model.cayenne.Reservation;
+import org.chappyGolf.model.cayenne.TeeTime;
 import org.chappyGolf.service.TeeTimeSeedService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +40,7 @@ public class AdminController {
     }
 
     @GetMapping("/tee-sheet")
-    public List<TeeSheetReservationDto> getTeeSheet(
+    public List<AdminTeeTimeDto> getTeeSheet(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
         LocalDateTime start = date.atStartOfDay();
@@ -45,38 +48,81 @@ public class AdminController {
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("h:mm a");
 
-        List<Reservation> reservations = ObjectSelect.query(Reservation.class)
+        List<TeeTime> teeTimes = ObjectSelect.query(TeeTime.class)
                 .select(context);
 
-        return reservations.stream()
-                .filter(r -> {
-                    LocalDateTime teeTime = r.getTeeTime().getStartTime();
-                    return !teeTime.isBefore(start) && teeTime.isBefore(end);
+        return teeTimes.stream()
+                .filter(t -> {
+                    LocalDateTime teeTimeStart = t.getStartTime();
+                    return !teeTimeStart.isBefore(start) && teeTimeStart.isBefore(end);
                 })
-                .map(r -> {
-                    Payment payment = r.getPayments().isEmpty() ? null : r.getPayments().get(0);
+                .sorted(Comparator.comparing(TeeTime::getStartTime))
+                .map(t -> {
+                    List<AdminTeeTimeReservationDto> reservations = t.getReservations().stream()
+                            .map(r -> {
+                                Payment payment = r.getPayments().isEmpty() ? null : r.getPayments().get(0);
 
-                    LocalDateTime startTime = r.getTeeTime().getStartTime();
+                                return new AdminTeeTimeReservationDto(
+                                        (Integer) r.getObjectId().getIdSnapshot().get("id"),
+                                        r.getUser().getName(),
+                                        r.getUser().getEmail(),
+                                        r.getPartySize(),
+                                        r.getTier().getName(),
+                                        payment != null ? payment.getAmountCents() : 0,
+                                        payment != null ? payment.getStatus() : "UNKNOWN",
+                                        r.isTransportation()
+                                );
+                            })
+                            .sorted(Comparator.comparing(AdminTeeTimeReservationDto::customerName,
+                                    Comparator.nullsLast(String::compareToIgnoreCase)))
+                            .toList();
 
-                    String slotLabel = startTime
+                    int reservedSpots = t.getReservations().stream()
+                            .mapToInt(Reservation::getPartySize)
+                            .sum();
+
+                    String slotLabel = t.getStartTime()
                             .atZone(ZoneId.of("America/New_York"))
                             .format(formatter);
 
-                    return new TeeSheetReservationDto(
-                            (Integer) r.getObjectId().getIdSnapshot().get("id"),
-                            (Integer) r.getTeeTime().getObjectId().getIdSnapshot().get("id"),
-                            r.getUser().getName(),
-                            r.getUser().getEmail(),
-                            r.getPartySize(),
-                            startTime,
+                    Integer teeTimeId = (Integer) t.getObjectId().getIdSnapshot().get("id");
+                    int capacity = t.getCapacity() != null ? t.getCapacity() : 0;
+                    int spotsRemaining = Math.max(0, capacity - reservedSpots);
+
+                    return new AdminTeeTimeDto(
+                            teeTimeId,
+                            t.getStartTime(),
                             slotLabel,
-                            r.getTier().getName(),
-                            payment != null ? payment.getAmountCents() : 0,
-                            payment != null ? payment.getStatus() : "UNKNOWN"
+                            capacity,
+                            spotsRemaining,
+                            t.isBlocked(),
+                            t.getBlockedReason(),
+                            reservations
                     );
                 })
-                .sorted(Comparator.comparing(TeeSheetReservationDto::getStartTime))
                 .toList();
+    }
+
+    @PutMapping("/tee-times/{id}/block")
+    public String updateTeeTimeBlock(
+            @PathVariable int id,
+            @RequestBody UpdateTeeTimeBlockRequest request) {
+
+        TeeTime teeTime = Cayenne.objectForPK(context, TeeTime.class, id);
+        if (teeTime == null) {
+            throw new RuntimeException("Tee time not found");
+        }
+
+        teeTime.setBlocked(request.blocked());
+        teeTime.setBlockedReason(request.blocked()
+                ? (request.blockedReason() == null ? "" : request.blockedReason().trim())
+                : null);
+
+        context.commitChanges();
+
+        return request.blocked()
+                ? "Tee time blocked successfully"
+                : "Tee time unblocked successfully";
     }
 
     @GetMapping("/reservations/{id}")
@@ -97,6 +143,7 @@ public class AdminController {
                 reservation.getTeeTime().getStartTime(),
                 reservation.getTier().getName(),
                 reservation.getPartySize(),
+                reservation.isTransportation(),
                 payment != null ? payment.getAmountCents() : 0,
                 payment != null ? payment.getStatus() : "UNKNOWN",
                 payment != null ? payment.getSquarePaymentId() : null
