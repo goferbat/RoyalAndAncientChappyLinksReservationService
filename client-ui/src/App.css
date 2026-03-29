@@ -1,0 +1,291 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, Arial, sans-serif;
+  background: #f4f6f8;
+  color: #1f2937;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.hero {
+  margin-bottom: 20px;
+}
+
+.hero h1 {
+  margin: 0 0 8px;
+  font-size: 36px;
+}
+
+.subtitle,
+.muted {
+  color: #6b7280;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.panel {
+  background: white;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+}
+
+.sectionHeader {
+  margin-bottom: 14px;
+}
+
+.sectionHeader h2,
+.panel h2 {
+  margin: 0 0 6px;
+}
+
+.controls {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.fieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 14px;
+  background: white;
+}
+
+input:focus {
+  outline: 2px solid rgba(17, 24, 39, 0.12);
+  border-color: #9ca3af;
+}
+
+.buttonRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+button {
+  border: none;
+  background: #111827;
+  color: white;
+  padding: 11px 15px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button.secondary {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.message {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.message.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.message.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.slotGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.slotCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.slotCard.selected {
+  border-color: #111827;
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.06);
+}
+
+.slotTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.slotTime {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #dcfce7;
+  color: #166534;
+  white-space: nowrap;
+}
+
+.badge.soldOut {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.tierRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tierButton {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  background: white;
+  color: #111827;
+  border: 1px solid #d1d5db;
+}
+
+.tierButton.selectedTier {
+  background: #111827;
+  color: white;
+  border-color: #111827;
+}
+
+.tierPrice {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.bookingForm {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.summary {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 8px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.summaryRow.total {
+  font-size: 18px;
+  border-bottom: none;
+}
+
+.emptyState {
+  padding: 18px;
+  border: 1px dashed #d1d5db;
+  border-radius: 14px;
+  color: #6b7280;
+  background: #fafafa;
+}
+
+code {
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.95em;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldRow {
+    grid-template-columns: 1fr;
+  }
+
+  .slotTop {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .page {
+    padding: 16px;
+  }
+
+  .hero h1 {
+    font-size: 30px;
+  }
+
+  .squareWrap {
+    margin-top: 8px;
+  }
+
+  .squareWrap iframe {
+    border-radius: 12px;
+  }
+
+  .bookingForm {
+    display: grid;
+    gap: 16px;
+    margin-top: 18px;
+  }
+}

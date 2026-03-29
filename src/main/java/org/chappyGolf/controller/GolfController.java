@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,25 +26,172 @@ public class GolfController {
     private final SquareClient squareClient;
     private final String squareLocationId;
     private final org.chappyGolf.service.TeeTimeSeedService teeTimeSeedService;
+    private final org.chappyGolf.services.EmailService emailService;
 
     public GolfController(ObjectContext context,
                           SquareClient squareClient,
                           @Value("${square.location.id}") String squareLocationId,
-                          org.chappyGolf.service.TeeTimeSeedService teeTimeSeedService) {
+                          org.chappyGolf.service.TeeTimeSeedService teeTimeSeedService,
+                          org.chappyGolf.services.EmailService emailService) {
         this.context = context;
         this.squareClient = squareClient;
         this.squareLocationId = squareLocationId;
         this.teeTimeSeedService = teeTimeSeedService;
+        this.emailService = emailService;
     }
 
     // ---- Users ----
     @PostMapping("/users")
-    public void createUser(@RequestBody UserDto dto) {
+    public UserResponseDto createUser(@RequestBody UserDto dto) {
+        if (dto.getName() == null || dto.getName().isBlank()) {
+            throw new RuntimeException("Name is required");
+        }
+        if (dto.getEmail() == null || dto.getEmail().isBlank()) {
+            throw new RuntimeException("Email is required");
+        }
+
+        Users existingUser = ObjectSelect.query(Users.class)
+                .where(Users.EMAIL.eq(dto.getEmail().trim().toLowerCase()))
+                .selectOne(context);
+
+        if (existingUser != null) {
+            return new UserResponseDto(
+                    Cayenne.intPKForObject(existingUser),
+                    existingUser.getName(),
+                    existingUser.getEmail()
+            );
+        }
+
         Users user = context.newObject(Users.class);
-        user.setName(dto.getName());
-        user.setEmail(dto.getEmail());
+        user.setName(dto.getName().trim());
+        user.setEmail(dto.getEmail().trim().toLowerCase());
         user.setCreatedAt(LocalDateTime.now());
         context.commitChanges();
+
+        return new UserResponseDto(
+                Cayenne.intPKForObject(user),
+                user.getName(),
+                user.getEmail()
+        );
+    }
+
+    @PostMapping("/client/reservations")
+    public ReservationStatusResponse createClientReservation(@RequestBody ClientReservationDto dto) throws SquareApiException {
+        if (dto.getName() == null || dto.getName().isBlank()) {
+            throw new RuntimeException("Name is required");
+        }
+        if (dto.getEmail() == null || dto.getEmail().isBlank()) {
+            throw new RuntimeException("Email is required");
+        }
+        if (dto.getSourceId() == null || dto.getSourceId().isBlank()) {
+            throw new RuntimeException("Payment source is required");
+        }
+
+        Users user = ObjectSelect.query(Users.class)
+                .where(Users.EMAIL.eq(dto.getEmail().trim().toLowerCase()))
+                .selectOne(context);
+
+        if (user == null) {
+            user = context.newObject(Users.class);
+            user.setName(dto.getName().trim());
+            user.setEmail(dto.getEmail().trim().toLowerCase());
+            user.setCreatedAt(LocalDateTime.now());
+        } else {
+            user.setName(dto.getName().trim());
+        }
+
+        TeeTime teeTime = Cayenne.objectForPK(context, TeeTime.class, dto.getTeeTimeId());
+        TeeTimeTier tier = Cayenne.objectForPK(context, TeeTimeTier.class, dto.getTeeTimeTierId());
+
+        if (teeTime == null || tier == null) {
+            throw new RuntimeException("Invalid booking data");
+        }
+
+        if (dto.getPartySize() < 1 || dto.getPartySize() > 6) {
+            throw new RuntimeException("Party size must be between 1 and 6");
+        }
+
+        if (teeTime.getCapacity() < dto.getPartySize()) {
+            throw new RuntimeException("Not enough capacity left");
+        }
+
+        long totalAmount = tier.getPriceCents() * dto.getPartySize();
+
+        Money amount = Money.builder()
+                .amount(totalAmount)
+                .currency(Currency.USD)
+                .build();
+
+        CreatePaymentRequest paymentReq = CreatePaymentRequest.builder()
+                .sourceId(dto.getSourceId())
+                .idempotencyKey(UUID.randomUUID().toString())
+                .amountMoney(amount)
+                .locationId(squareLocationId)
+                .autocomplete(false)
+                .build();
+
+        CreatePaymentResponse paymentResp = squareClient.payments().create(paymentReq);
+
+        var sqPayment = paymentResp.getPayment()
+                .orElseThrow(() -> new RuntimeException("Square payment missing"));
+
+        String paymentId = sqPayment.getId().orElseThrow();
+        String status = sqPayment.getStatus().orElse("UNKNOWN");
+
+        if (!"AUTHORIZED".equals(status) && !"APPROVED".equals(status)) {
+            throw new RuntimeException("Payment hold failed with status: " + status);
+        }
+
+        Reservation reservation = context.newObject(Reservation.class);
+        reservation.setUser(user);
+        reservation.setTeeTime(teeTime);
+        reservation.setTier(tier);
+        reservation.setPartySize(dto.getPartySize());
+        reservation.setCreatedAt(LocalDateTime.now());
+
+        teeTime.setCapacity(teeTime.getCapacity() - dto.getPartySize());
+
+        Payment payment = context.newObject(Payment.class);
+        payment.setReservation(reservation);
+        payment.setSquarePaymentId(paymentId);
+        payment.setAmountCents(totalAmount);
+        payment.setStatus(status);
+        payment.setCreatedAt(LocalDateTime.now());
+
+        context.commitChanges();
+
+        int reservationId = Cayenne.intPKForObject(reservation);
+
+        try {
+            emailService.sendReservationNotification(
+                    user.getName(),
+                    user.getEmail(),
+                    teeTime.getStartTime(),
+                    tier.getName(),
+                    reservation.getPartySize(),
+                    totalAmount,
+                    reservationId
+            );
+
+            emailService.sendReservationConfirmationToCustomer(
+                    user.getName(),
+                    user.getEmail(),
+                    teeTime.getStartTime(),
+                    tier.getName(),
+                    reservation.getPartySize(),
+                    totalAmount,
+                    reservationId
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return new ReservationStatusResponse(
+                reservationId,
+                status,
+                reservation.getPartySize(),
+                teeTime.getStartTime()
+        );
     }
 
     // ---- Tee Times ----
@@ -174,10 +320,35 @@ public class GolfController {
         payment.setCreatedAt(LocalDateTime.now());
 
         context.commitChanges();
+
         int reservationId = (Integer) reservation.getObjectId()
                 .getIdSnapshot()
                 .get("id");
 
+        try {
+            emailService.sendReservationNotification(
+                    user.getName(),
+                    user.getEmail(),
+                    teeTime.getStartTime(),
+                    tier.getName(),
+                    reservation.getPartySize(),
+                    totalAmount,
+                    reservationId
+            );
+
+            emailService.sendReservationConfirmationToCustomer(
+                    user.getName(),
+                    user.getEmail(),
+                    teeTime.getStartTime(),
+                    tier.getName(),
+                    reservation.getPartySize(),
+                    totalAmount,
+                    reservationId
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            // swap this for proper logging
+        }
         return new ReservationStatusResponse(
                 reservationId,
                 status,
@@ -186,31 +357,74 @@ public class GolfController {
         );
     }
 
-    public void captureReservationPayment(@PathVariable int id) throws SquareApiException {
+    public ReservationStatusResponse captureReservationPayment(int id) throws SquareApiException {
         Reservation reservation = Cayenne.objectForPK(context, Reservation.class, id);
-        if (reservation == null) throw new RuntimeException("Reservation not found");
+        if (reservation == null) {
+            throw new RuntimeException("Reservation not found");
+        }
 
         Payment payment = ObjectSelect.query(Payment.class)
                 .where(Payment.RESERVATION.eq(reservation))
                 .selectOne(context);
-        if (payment == null) throw new RuntimeException("Payment not found");
+        if (payment == null) {
+            throw new RuntimeException("Payment not found");
+        }
 
         var req = CompletePaymentRequest.builder()
                 .paymentId(payment.getSquarePaymentId())
                 .build();
 
-        var resp = squareClient.payments().complete(req); // COMPLETE PAYMENT
+        var resp = squareClient.payments().complete(req);
 
-        var sqPayment = resp.getPayment().orElseThrow();
+        var sqPayment = resp.getPayment()
+                .orElseThrow(() -> new RuntimeException("Square payment missing after capture"));
+
         String status = sqPayment.getStatus().orElse("UNKNOWN");
+
         if (!"COMPLETED".equals(status)) {
             throw new RuntimeException("Capture failed, status: " + status);
         }
 
-        payment.setStatus("COMPLETED");
+        payment.setStatus(status);
         context.commitChanges();
-    }
 
+        int reservationId = (Integer) reservation.getObjectId()
+                .getIdSnapshot()
+                .get("id");
+
+        long totalAmount = payment.getAmountCents();
+
+        try {
+            emailService.sendReservationCapturedNotification(
+                    reservation.getUser().getName(),
+                    reservation.getUser().getEmail(),
+                    reservation.getTeeTime().getStartTime(),
+                    reservation.getTier().getName(),
+                    reservation.getPartySize(),
+                    totalAmount,
+                    reservationId
+            );
+
+            emailService.sendReservationCapturedConfirmationToCustomer(
+                    reservation.getUser().getName(),
+                    reservation.getUser().getEmail(),
+                    reservation.getTeeTime().getStartTime(),
+                    reservation.getTier().getName(),
+                    reservation.getPartySize(),
+                    totalAmount,
+                    reservationId
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return new ReservationStatusResponse(
+                reservationId,
+                status,
+                reservation.getPartySize(),
+                reservation.getTeeTime().getStartTime()
+        );
+    }
     public void cancelReservationPayment(@PathVariable int id) throws SquareApiException {
         Reservation reservation = Cayenne.objectForPK(context, Reservation.class, id);
         if (reservation == null) throw new RuntimeException("Reservation not found");

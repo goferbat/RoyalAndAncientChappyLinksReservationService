@@ -18,6 +18,7 @@
 		<db-attribute name="party_size" type="INTEGER" isMandatory="true" length="10"/>
 		<db-attribute name="tee_time_id" type="INTEGER" isMandatory="true" length="10"/>
 		<db-attribute name="tier_id" type="INTEGER" isMandatory="true" length="10"/>
+		<db-attribute name="transportation" type="BOOLEAN" isMandatory="true"/>
 		<db-attribute name="user_id" type="INTEGER" isMandatory="true" length="10"/>
 	</db-entity>
 	<db-entity name="tee_time" schema="public">
@@ -45,6 +46,7 @@
 	<obj-entity name="Reservation" className="org.chappyGolf.model.cayenne.Reservation" dbEntityName="reservation">
 		<obj-attribute name="createdAt" type="java.time.LocalDateTime" db-attribute-path="created_at"/>
 		<obj-attribute name="partySize" type="int" db-attribute-path="party_size"/>
+		<obj-attribute name="transportation" type="boolean" db-attribute-path="transportation"/>
 	</obj-entity>
 	<obj-entity name="TeeTime" className="org.chappyGolf.model.cayenne.TeeTime" dbEntityName="tee_time">
 		<obj-attribute name="capacity" type="int" db-attribute-path="capacity"/>

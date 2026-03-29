@@ -105,8 +105,7 @@ public class AdminController {
 
     @PostMapping("/reservations/{id}/capture")
     public ReservationStatusResponse capture(@PathVariable int id) throws SquareApiException {
-        golfController.captureReservationPayment(id);
-        return golfController.getReservationStatus(id);
+        return golfController.captureReservationPayment(id);
     }
 
     @PostMapping("/reservations/{id}/cancel")
