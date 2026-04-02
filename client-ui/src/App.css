@@ -51,6 +51,7 @@ input {
   padding: 20px;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
   border: 1px solid #e5e7eb;
+  min-width: 0;
 }
 
 .sectionHeader {
@@ -66,17 +67,20 @@ input {
   display: grid;
   gap: 14px;
   margin-bottom: 18px;
+  min-width: 0;
 }
 
 .field {
   display: grid;
   gap: 6px;
+  min-width: 0;
 }
 
 .fieldRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+  min-width: 0;
 }
 
 label {
@@ -84,13 +88,22 @@ label {
   font-weight: 700;
 }
 
-input {
+input,
+input[type="date"] {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: block;
   padding: 12px 14px;
   border: 1px solid #d1d5db;
   border-radius: 12px;
   font-size: 14px;
   background: white;
+}
+
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 input:focus {
@@ -171,7 +184,6 @@ button:disabled {
   font-weight: 800;
 }
 
-/* BASE BADGE */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -184,20 +196,17 @@ button:disabled {
   white-space: nowrap;
 }
 
-/* SOLD OUT */
 .badge.soldOut {
   background: #fee2e2;
   color: #991b1b;
 }
 
-/* ✅ FIXED: BLOCKED (NOW WORKS EVERYWHERE) */
 .badge.blockedBadge {
   background: #fee2e2;
   color: #991b1b;
   border: 1px solid #fca5a5;
 }
 
-/* ✅ BLOCKED MESSAGE */
 .blockedNotice {
   margin: 10px 0 0;
   padding: 10px 12px;
