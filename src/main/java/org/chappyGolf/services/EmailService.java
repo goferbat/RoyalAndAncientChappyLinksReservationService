@@ -1,27 +1,59 @@
 package org.chappyGolf.services;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final String resendApiKey;
     private final String fromEmail;
     private final String adminEmail;
 
-    public EmailService(JavaMailSender mailSender,
-                        @Value("${app.mail.from}") String fromEmail,
-                        @Value("${app.mail.admin}") String adminEmail) {
-        this.mailSender = mailSender;
+    public EmailService(
+            @Value("${resend.api.key}") String resendApiKey,
+            @Value("${app.mail.from}") String fromEmail,
+            @Value("${app.mail.admin}") String adminEmail
+    ) {
+        this.resendApiKey = resendApiKey;
         this.fromEmail = fromEmail;
         this.adminEmail = adminEmail;
+    }
+
+    private void sendEmail(String to, String subject, String text) {
+        String url = "https://api.resend.com/emails";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(resendApiKey);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("User-Agent", "RoyalChappy/1.0");
+
+        Map<String, Object> body = Map.of(
+                "from", fromEmail,
+                "to", List.of(to),
+                "subject", subject,
+                "text", text
+        );
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        try {
+            restTemplate.postForEntity(url, request, String.class);
+        } catch (RestClientException e) {
+            throw new RuntimeException("Failed to send email with Resend", e);
+        }
     }
 
     public void sendReservationNotification(
@@ -37,11 +69,7 @@ public class EmailService {
         String formattedTeeTime = teeTime.atZone(ZoneId.of("America/New_York")).format(formatter);
         String dollars = String.format("%.2f", amountCents / 100.0);
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(adminEmail);
-        message.setSubject("New Golf Reservation #" + reservationId);
-        message.setText(
+        String text =
                 "A new reservation was made.\n\n" +
                         "Reservation ID: " + reservationId + "\n" +
                         "Customer: " + customerName + "\n" +
@@ -49,10 +77,9 @@ public class EmailService {
                         "Tee Time: " + formattedTeeTime + "\n" +
                         "Tier: " + tierName + "\n" +
                         "Party Size: " + partySize + "\n" +
-                        "Authorized Amount: $" + dollars + "\n"
-        );
+                        "Authorized Amount: $" + dollars + "\n";
 
-        mailSender.send(message);
+        sendEmail(adminEmail, "New Golf Reservation #" + reservationId, text);
     }
 
     public void sendReservationConfirmationToCustomer(
@@ -68,11 +95,7 @@ public class EmailService {
         String formattedTeeTime = teeTime.atZone(ZoneId.of("America/New_York")).format(formatter);
         String dollars = String.format("%.2f", amountCents / 100.0);
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(customerEmail);
-        message.setSubject("Your Chappy Golf Reservation #" + reservationId);
-        message.setText(
+        String text =
                 "Hi " + customerName + ",\n\n" +
                         "Your reservation is confirmed.\n\n" +
                         "Reservation ID: " + reservationId + "\n" +
@@ -80,10 +103,9 @@ public class EmailService {
                         "Tier: " + tierName + "\n" +
                         "Party Size: " + partySize + "\n" +
                         "Authorized Amount: $" + dollars + "\n\n" +
-                        "We look forward to seeing you."
-        );
+                        "We look forward to seeing you.";
 
-        mailSender.send(message);
+        sendEmail(customerEmail, "Your Chappy Golf Reservation #" + reservationId, text);
     }
 
     public void sendReservationCapturedNotification(
@@ -100,11 +122,7 @@ public class EmailService {
         String formattedTeeTime = teeTime.atZone(ZoneId.of("America/New_York")).format(formatter);
         String formattedAmount = String.format("$%.2f", amountCents / 100.0);
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(adminEmail);
-        message.setSubject("Reservation Confirmed + Charged #" + reservationId);
-        message.setText(
+        String text =
                 "A reservation has now been confirmed and charged.\n\n" +
                         "Reservation ID: " + reservationId + "\n" +
                         "Customer: " + customerName + "\n" +
@@ -113,10 +131,9 @@ public class EmailService {
                         "Tier: " + tierName + "\n" +
                         "Party Size: " + partySize + "\n" +
                         "Transportation: " + transportation + "\n" +
-                        "Amount Charged: " + formattedAmount + "\n"
-        );
+                        "Amount Charged: " + formattedAmount + "\n";
 
-        mailSender.send(message);
+        sendEmail(adminEmail, "Reservation Confirmed + Charged #" + reservationId, text);
     }
 
     public void sendReservationCapturedConfirmationToCustomer(
@@ -133,22 +150,17 @@ public class EmailService {
         String formattedTeeTime = teeTime.atZone(ZoneId.of("America/New_York")).format(formatter);
         String formattedAmount = String.format("$%.2f", amountCents / 100.0);
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(customerEmail);
-        message.setSubject("Your Reservation Is Confirmed #" + reservationId);
-        message.setText(
+        String text =
                 "Hi " + customerName + ",\n\n" +
                         "Your reservation has now been confirmed, and your card has been charged.\n\n" +
                         "Reservation ID: " + reservationId + "\n" +
                         "Tee Time: " + formattedTeeTime + "\n" +
                         "Tier: " + tierName + "\n" +
                         "Party Size: " + partySize + "\n" +
-                        "Transporation: " + transportation + "\n" +
+                        "Transportation: " + transportation + "\n" +
                         "Amount Charged: " + formattedAmount + "\n\n" +
-                        "We look forward to seeing you."
-        );
+                        "We look forward to seeing you.";
 
-        mailSender.send(message);
+        sendEmail(customerEmail, "Your Reservation Is Confirmed #" + reservationId, text);
     }
 }
