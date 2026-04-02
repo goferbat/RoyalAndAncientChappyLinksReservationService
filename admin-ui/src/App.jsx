@@ -37,7 +37,7 @@ function canRefund(status) {
 }
 
 export default function App() {
-  const [baseUrl, setBaseUrl] = useState("http://localhost:8081");
+  const [baseUrl, setBaseUrl] = useState("https://royalandancientchappylinksreservationservice-production.up.railway.app");
   const [apiKey, setApiKey] = useState("dev-secret-key");
   const [date, setDate] = useState("2026-03-29");
   const [search, setSearch] = useState("");

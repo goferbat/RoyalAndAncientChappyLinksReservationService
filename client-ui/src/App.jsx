@@ -3,6 +3,8 @@ import { CreditCard, PaymentForm } from "react-square-web-payments-sdk";
 import "./App.css";
 
 const TRANSPORTATION_PRICE_CENTS = 1000;
+const API_BASE_URL =
+import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 function formatMoney(amountCents) {
   return new Intl.NumberFormat("en-US", {
@@ -46,8 +48,6 @@ function todayInputValue() {
 export default function App() {
   const squareAppId = import.meta.env.VITE_SQUARE_APP_ID;
   const squareLocationId = import.meta.env.VITE_SQUARE_LOCATION_ID;
-
-  const [baseUrl, setBaseUrl] = useState("http://localhost:8081");
   const [selectedDate, setSelectedDate] = useState(todayInputValue());
   const [teeTimes, setTeeTimes] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -102,7 +102,7 @@ export default function App() {
     setSuccess("");
 
     try {
-      const res = await fetch(`${baseUrl}/api/tee-times`);
+      const res = await fetch(`${API_BASE_URL}/api/tee-times`);
 
       if (!res.ok) {
         throw new Error(await res.text());
@@ -237,7 +237,7 @@ export default function App() {
         sourceId,
       };
 
-      const res = await fetch(`${baseUrl}/api/client/reservations`, {
+      const res = await fetch(`${API_BASE_URL}/api/client/reservations`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -311,14 +311,6 @@ export default function App() {
 
             <div className="controls">
               <div className="fieldRow">
-                <div className="field">
-                  <label>Backend URL</label>
-                  <input
-                    value={baseUrl}
-                    onChange={(e) => setBaseUrl(e.target.value)}
-                  />
-                </div>
-
                 <div className="field">
                   <label>Date</label>
                   <input
@@ -526,8 +518,9 @@ export default function App() {
 
               {!squareReady ? (
                 <div className="message error">
-                  Missing Square env vars. Add VITE_SQUARE_APP_ID and
-                  VITE_SQUARE_LOCATION_ID to client-ui/.env and restart Vite.
+                  Missing Square env vars. Add VITE_SQUARE_APP_ID,
+                  VITE_SQUARE_LOCATION_ID, and VITE_API_BASE_URL to
+                  client-ui/.env and restart Vite.
                 </div>
               ) : (
                 <div className="squareWrap">
