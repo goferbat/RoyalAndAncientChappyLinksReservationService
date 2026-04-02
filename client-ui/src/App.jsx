@@ -4,7 +4,7 @@ import "./App.css";
 
 const TRANSPORTATION_PRICE_CENTS = 1000;
 const API_BASE_URL =
-import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 function formatMoney(amountCents) {
   return new Intl.NumberFormat("en-US", {
@@ -45,15 +45,69 @@ function todayInputValue() {
   return `${year}-${month}-${day}`;
 }
 
+function normalizePaymentError(rawMessage) {
+  const message = (rawMessage || "").toLowerCase();
+
+  if (
+    message.includes("postal") ||
+    message.includes("zip") ||
+    message.includes("postcode")
+  ) {
+    return "The postal code looks invalid. Please check it and try again.";
+  }
+
+  if (message.includes("cvv") || message.includes("cvc")) {
+    return "The CVV is invalid. Please re-enter the security code.";
+  }
+
+  if (
+    message.includes("expiration") ||
+    message.includes("expiry") ||
+    message.includes("exp date")
+  ) {
+    return "The expiration date looks invalid. Please check it and try again.";
+  }
+
+  if (
+    message.includes("card number") ||
+    message.includes("pan") ||
+    message.includes("invalid card")
+  ) {
+    return "The card number looks invalid. Please check it and try again.";
+  }
+
+  if (
+    message.includes("declined") ||
+    message.includes("insufficient") ||
+    message.includes("do not honor")
+  ) {
+    return "Your card was declined. Please try another payment method.";
+  }
+
+  if (message.includes("token")) {
+    return "We couldn't securely process the card details. Please try again.";
+  }
+
+  return rawMessage || "Payment failed. Please review your card details and try again.";
+}
+
 export default function App() {
   const squareAppId = import.meta.env.VITE_SQUARE_APP_ID;
   const squareLocationId = import.meta.env.VITE_SQUARE_LOCATION_ID;
+
   const [selectedDate, setSelectedDate] = useState(todayInputValue());
   const [teeTimes, setTeeTimes] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+
+  const [paymentResult, setPaymentResult] = useState({
+    status: "idle", // idle | success | failure
+    reservationId: null,
+    paymentStatus: "",
+    message: "",
+  });
 
   const [form, setForm] = useState({
     name: "",
@@ -126,9 +180,7 @@ export default function App() {
   }
 
   function selectSlot(slot) {
-    if (slot?.blocked) {
-      return;
-    }
+    if (slot?.blocked) return;
 
     setForm((prev) => ({
       ...prev,
@@ -142,9 +194,7 @@ export default function App() {
   }
 
   function selectTier(slot, tier) {
-    if (slot?.blocked) {
-      return;
-    }
+    if (slot?.blocked) return;
 
     setForm((prev) => ({
       ...prev,
@@ -157,9 +207,7 @@ export default function App() {
   }
 
   function toggleTransportation(slot) {
-    if (slot?.blocked) {
-      return;
-    }
+    if (slot?.blocked) return;
 
     setForm((prev) => {
       const sameSlot = Number(prev.teeTimeId) === Number(slot.id);
@@ -187,6 +235,12 @@ export default function App() {
     });
     setSuccess("");
     setError("");
+    setPaymentResult({
+      status: "idle",
+      reservationId: null,
+      paymentStatus: "",
+      message: "",
+    });
   }
 
   function validate() {
@@ -217,6 +271,12 @@ export default function App() {
   async function submitReservationWithToken(sourceId) {
     setError("");
     setSuccess("");
+    setPaymentResult({
+      status: "idle",
+      reservationId: null,
+      paymentStatus: "",
+      message: "",
+    });
 
     const validationError = validate();
     if (validationError) {
@@ -246,7 +306,17 @@ export default function App() {
       });
 
       if (!res.ok) {
-        throw new Error(await res.text());
+        const raw = await res.text();
+        const friendly = normalizePaymentError(raw);
+
+        setPaymentResult({
+          status: "failure",
+          reservationId: null,
+          paymentStatus: "",
+          message: friendly,
+        });
+
+        throw new Error(friendly);
       }
 
       const data = await res.json();
@@ -255,17 +325,14 @@ export default function App() {
         `Reservation #${data.reservationId} created. Payment status: ${data.paymentStatus}.`
       );
 
-      await loadTeeTimes();
+      setPaymentResult({
+        status: "success",
+        reservationId: data.reservationId,
+        paymentStatus: data.paymentStatus || "COMPLETED",
+        message: "Your booking is confirmed.",
+      });
 
-      setForm((prev) => ({
-        ...prev,
-        teeTimeId: null,
-        teeTimeLabel: "",
-        teeTimeTierId: null,
-        teeTimeTierName: "",
-        teeTimeTierPriceCents: 0,
-        transportation: false,
-      }));
+      await loadTeeTimes();
     } catch (err) {
       setError(err.message || "Failed to create reservation.");
     } finally {
@@ -275,10 +342,20 @@ export default function App() {
 
   async function handleCardTokenize(tokenResult) {
     if (tokenResult.status !== "OK") {
-      const message =
+      const rawMessage =
         tokenResult.errors?.map((e) => e.message).join(", ") ||
         "Card tokenization failed.";
-      setError(message);
+
+      const friendly = normalizePaymentError(rawMessage);
+
+      setPaymentResult({
+        status: "failure",
+        reservationId: null,
+        paymentStatus: "",
+        message: friendly,
+      });
+
+      setError(friendly);
       return;
     }
 
@@ -286,6 +363,46 @@ export default function App() {
   }
 
   const squareReady = squareAppId && squareLocationId;
+
+  if (paymentResult.status === "success") {
+    return (
+      <div className="page">
+        <div className="container">
+          <section className="panel" style={{ maxWidth: 700, margin: "40px auto" }}>
+            <h1>Booking Confirmed</h1>
+            <p className="subtitle">
+              Your payment went through and your reservation is confirmed.
+            </p>
+
+            <div className="summary">
+              <div className="summaryRow">
+                <span>Reservation #</span>
+                <strong>{paymentResult.reservationId}</strong>
+              </div>
+              <div className="summaryRow">
+                <span>Status</span>
+                <strong>{paymentResult.paymentStatus}</strong>
+              </div>
+              <div className="summaryRow">
+                <span>Email</span>
+                <strong>{form.email}</strong>
+              </div>
+            </div>
+
+            <div className="message success" style={{ marginTop: 20 }}>
+              A confirmation email is on the way.
+            </div>
+
+            <div className="buttonRow" style={{ marginTop: 20 }}>
+              <button type="button" onClick={resetForm}>
+                Back to Booking
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page">
@@ -531,6 +648,12 @@ export default function App() {
                   >
                     <CreditCard />
                   </PaymentForm>
+                </div>
+              )}
+
+              {paymentResult.status === "failure" && (
+                <div className="message error" style={{ marginTop: 16 }}>
+                  {paymentResult.message}
                 </div>
               )}
 
