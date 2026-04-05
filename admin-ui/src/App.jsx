@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
 function formatMoney(amountCents) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -37,10 +39,6 @@ function canRefund(status) {
 }
 
 export default function App() {
-  const [baseUrl, setBaseUrl] = useState(
-    "https://royalandancientchappylinksreservationservice-production.up.railway.app"
-  );
-
   const [date, setDate] = useState(() => {
     const now = new Date();
     return now.toISOString().slice(0, 10);
@@ -100,8 +98,7 @@ export default function App() {
 
   useEffect(() => {
     checkAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseUrl]);
+  }, []);
 
   async function checkAuth() {
     setError("");
@@ -350,14 +347,6 @@ export default function App() {
             <h1>Royal Chappy Admin Login</h1>
             <p className="subtitle">Sign in with your admin account</p>
 
-            <div className="field">
-              <label>Backend URL</label>
-              <input
-                value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
-              />
-            </div>
-
             <form onSubmit={handleLogin}>
               <div className="field">
                 <label>Email</label>
@@ -424,14 +413,6 @@ export default function App() {
         </div>
 
         <div className="panel controls">
-          <div className="field">
-            <label>Backend URL</label>
-            <input
-              value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
-            />
-          </div>
-
           <div className="field">
             <label>Date</label>
             <input
