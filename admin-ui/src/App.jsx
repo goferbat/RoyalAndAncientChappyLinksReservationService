@@ -43,7 +43,6 @@ export default function App() {
     const now = new Date();
     return now.toISOString().slice(0, 10);
   });
-
   const [search, setSearch] = useState("");
   const [teeTimes, setTeeTimes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -67,6 +66,7 @@ export default function App() {
 
   const filteredTeeTimes = useMemo(() => {
     const searchText = search.toLowerCase().trim();
+
     if (!searchText) return teeTimes;
 
     return teeTimes.filter((teeTime) => {
@@ -211,37 +211,6 @@ export default function App() {
     }
   }
 
-  async function runAction(reservationId, action) {
-    const actionKey = `${action}-${reservationId}`;
-    setLoadingAction((prev) => ({ ...prev, [actionKey]: true }));
-    setError("");
-    setMessage("");
-
-    try {
-      const url =
-        action === "cancel"
-          ? `${baseUrl}/api/admin/reservations/${reservationId}/cancel`
-          : `${baseUrl}/api/admin/reservations/${reservationId}/${action}`;
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers,
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        throw new Error(await res.text());
-      }
-
-      setMessage(`${action} succeeded for reservation ${reservationId}.`);
-      await loadTeeSheet();
-    } catch (err) {
-      setError(err.message || `Failed to ${action}.`);
-    } finally {
-      setLoadingAction((prev) => ({ ...prev, [actionKey]: false }));
-    }
-  }
-
   async function seedDate() {
     if (!window.confirm(`Seed tee times for ${date}?`)) return;
 
@@ -269,73 +238,60 @@ export default function App() {
     }
   }
 
-  async function toggleBlocked(teeTime) {
-    const actionKey = `block-${teeTime.teeTimeId}`;
-    setLoadingAction((prev) => ({ ...prev, [actionKey]: true }));
-    setError("");
-    setMessage("");
-
-    try {
-      let blockedReason = teeTime.blockedReason || "";
-
-      if (!teeTime.blocked) {
-        blockedReason =
-          window.prompt(
-            `Reason for blocking ${teeTime.slotLabel}?`,
-            teeTime.blockedReason || "Private event"
-          ) || "";
-      }
-
-      const res = await fetch(
-        `${baseUrl}/api/admin/tee-times/${teeTime.teeTimeId}/block`,
-        {
-          method: "PUT",
-          headers,
-          credentials: "include",
-          body: JSON.stringify({
-            blocked: !teeTime.blocked,
-            blockedReason: !teeTime.blocked ? blockedReason : null,
-          }),
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error(await res.text());
-      }
-
-      setMessage(
-        !teeTime.blocked
-          ? `Blocked tee time ${teeTime.slotLabel}.`
-          : `Unblocked tee time ${teeTime.slotLabel}.`
-      );
-
-      await loadTeeSheet();
-    } catch (err) {
-      setError(err.message || "Failed to update tee time.");
-    } finally {
-      setLoadingAction((prev) => ({ ...prev, [actionKey]: false }));
-    }
-  }
-
   function isActionLoading(id, action) {
     return !!loadingAction[`${action}-${id}`];
   }
 
   if (!authChecked) {
-    return <div className="page"><div className="panel">Checking session...</div></div>;
+    return (
+      <div className="page">
+        <div className="container">
+          <div className="panel">
+            <h1>Royal Chappy Admin</h1>
+            <p className="subtitle">Checking admin session...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!currentUser) {
     return (
       <div className="page">
-        <div className="panel">
-          <h1>Admin Login</h1>
-          <form onSubmit={handleLogin}>
-            <input value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="Email" />
-            <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Password" />
-            <button type="submit">{loggingIn ? "..." : "Login"}</button>
-          </form>
-          {error && <div>{error}</div>}
+        <div className="container">
+          <div className="panel" style={{ maxWidth: 480, margin: "40px auto" }}>
+            <h1>Royal Chappy Admin Login</h1>
+            <p className="subtitle">Sign in with your admin account</p>
+
+            <form onSubmit={handleLogin}>
+              <div className="field">
+                <label>Email</label>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="field">
+                <label>Password</label>
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                />
+              </div>
+
+              <div className="buttonRow">
+                <button type="submit" disabled={loggingIn}>
+                  {loggingIn ? "Signing In..." : "Sign In"}
+                </button>
+              </div>
+            </form>
+
+            {error && <div className="message error">{error}</div>}
+            {message && <div className="message success">{message}</div>}
+          </div>
         </div>
       </div>
     );
@@ -343,23 +299,18 @@ export default function App() {
 
   return (
     <div className="page">
-      <div className="panel">
-        <h1>Admin</h1>
-        <button onClick={handleLogout}>Logout</button>
+      <div className="container">
+        <h1>Royal Chappy Admin</h1>
+
+        <button onClick={handleLogout}>Log Out</button>
 
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
 
-        <button onClick={loadTeeSheet}>Load</button>
-        <button onClick={seedDate}>Seed</button>
+        <button onClick={loadTeeSheet}>Load Tee Sheet</button>
+        <button onClick={seedDate}>Seed Date</button>
 
-        {filteredTeeTimes.map((t) => (
-          <div key={t.teeTimeId}>
-            <h3>{t.slotLabel}</h3>
-            <button onClick={() => toggleBlocked(t)}>
-              {t.blocked ? "Unblock" : "Block"}
-            </button>
-          </div>
-        ))}
+        {error && <div>{error}</div>}
+        {message && <div>{message}</div>}
       </div>
     </div>
   );
