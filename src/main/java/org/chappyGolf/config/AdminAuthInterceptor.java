@@ -21,6 +21,11 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            response.setStatus(HttpServletResponse.SC_OK);
+            return true;
+        }
+
         HttpSession session = request.getSession(false);
         if (session == null) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
