@@ -21,15 +21,20 @@ body {
 
 h1 {
   margin: 0 0 8px;
+  color: #111827;
+  font-weight: 700;
+
 }
 
 h2 {
   margin: 0;
+  color: #111827;
+  font-weight: 700;
 }
 
 .subtitle,
 .muted {
-  color: #6b7280;
+  color: #4b5563;
 }
 
 .panel {
@@ -112,6 +117,11 @@ button:disabled {
 
 .teeGroupHeader {
   margin-bottom: 14px;
+}
+
+.teeGroupHeader h2 {
+  font-size: 20px;
+  letter-spacing: -0.01em;
 }
 
 .reservationList {
