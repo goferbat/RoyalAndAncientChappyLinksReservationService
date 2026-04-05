@@ -16,7 +16,8 @@ public class CorsConfig {
                         .allowedOriginPatterns(
                                 "http://localhost:*",
                                 "https://*.vercel.app",
-                                "https://booking.royalchappy.com"
+                                "https://booking.royalchappy.com",
+                                "https://admin.royalchappy.com"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*");
