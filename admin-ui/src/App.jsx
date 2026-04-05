@@ -258,7 +258,9 @@ export default function App() {
     try {
       const res = await fetch(`${baseUrl}/api/admin/tee-times/seed/${date}`, {
         method: "POST",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+        },
         credentials: "include",
       });
 

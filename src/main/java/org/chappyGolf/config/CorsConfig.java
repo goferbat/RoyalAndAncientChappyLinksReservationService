@@ -14,15 +14,16 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
-                        .allowedOriginPatterns(
-                                "http://localhost:*",
-                                "https://*.vercel.app",
+                        .allowedOrigins(
+                                "https://admin.royalchappy.com",
                                 "https://booking.royalchappy.com",
-                                "https://admin.royalchappy.com"
+                                "http://localhost:5173",
+                                "http://localhost:5174"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
-                        .allowCredentials(true);
+                        .allowCredentials(true)
+                        .maxAge(3600);
             }
         };
     }
