@@ -5,6 +5,6 @@
 		<entity name="reservation" x="10.0" y="10.0" width="92.0" height="146.0"/>
 		<entity name="tee_time_tier" x="10.0" y="10.0" width="90.0" height="82.0"/>
 		<entity name="payment" x="10.0" y="10.0" width="124.0" height="130.0"/>
-		<entity name="users" x="10.0" y="10.0" width="67.0" height="98.0"/>
+		<entity name="users" x="10.0" y="10.0" width="99.0" height="130.0"/>
 	</graph>
 </graphs>

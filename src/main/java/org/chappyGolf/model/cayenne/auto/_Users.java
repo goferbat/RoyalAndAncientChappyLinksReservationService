@@ -28,11 +28,15 @@ public abstract class _Users extends BaseDataObject {
     public static final DateProperty<LocalDateTime> CREATED_AT = PropertyFactory.createDate("createdAt", LocalDateTime.class);
     public static final StringProperty<String> EMAIL = PropertyFactory.createString("email", String.class);
     public static final StringProperty<String> NAME = PropertyFactory.createString("name", String.class);
+    public static final StringProperty<String> PASSWORD_HASH = PropertyFactory.createString("passwordHash", String.class);
+    public static final StringProperty<String> ROLE = PropertyFactory.createString("role", String.class);
     public static final ListProperty<Reservation> RESERVATIONS = PropertyFactory.createList("reservations", Reservation.class);
 
     protected LocalDateTime createdAt;
     protected String email;
     protected String name;
+    protected String passwordHash;
+    protected String role;
 
     protected Object reservations;
 
@@ -66,6 +70,26 @@ public abstract class _Users extends BaseDataObject {
         return this.name;
     }
 
+    public void setPasswordHash(String passwordHash) {
+        beforePropertyWrite("passwordHash", this.passwordHash, passwordHash);
+        this.passwordHash = passwordHash;
+    }
+
+    public String getPasswordHash() {
+        beforePropertyRead("passwordHash");
+        return this.passwordHash;
+    }
+
+    public void setRole(String role) {
+        beforePropertyWrite("role", this.role, role);
+        this.role = role;
+    }
+
+    public String getRole() {
+        beforePropertyRead("role");
+        return this.role;
+    }
+
     public void addToReservations(Reservation obj) {
         addToManyTarget("reservations", obj, true);
     }
@@ -92,6 +116,10 @@ public abstract class _Users extends BaseDataObject {
                 return this.email;
             case "name":
                 return this.name;
+            case "passwordHash":
+                return this.passwordHash;
+            case "role":
+                return this.role;
             case "reservations":
                 return this.reservations;
             default:
@@ -115,6 +143,12 @@ public abstract class _Users extends BaseDataObject {
             case "name":
                 this.name = (String)val;
                 break;
+            case "passwordHash":
+                this.passwordHash = (String)val;
+                break;
+            case "role":
+                this.role = (String)val;
+                break;
             case "reservations":
                 this.reservations = val;
                 break;
@@ -137,6 +171,8 @@ public abstract class _Users extends BaseDataObject {
         out.writeObject(this.createdAt);
         out.writeObject(this.email);
         out.writeObject(this.name);
+        out.writeObject(this.passwordHash);
+        out.writeObject(this.role);
         out.writeObject(this.reservations);
     }
 
@@ -146,6 +182,8 @@ public abstract class _Users extends BaseDataObject {
         this.createdAt = (LocalDateTime)in.readObject();
         this.email = (String)in.readObject();
         this.name = (String)in.readObject();
+        this.passwordHash = (String)in.readObject();
+        this.role = (String)in.readObject();
         this.reservations = in.readObject();
     }
 

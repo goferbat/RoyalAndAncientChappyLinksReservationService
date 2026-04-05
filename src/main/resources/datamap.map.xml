@@ -38,6 +38,8 @@
 		<db-attribute name="email" type="VARCHAR" isMandatory="true" length="150"/>
 		<db-attribute name="id" type="INTEGER" isPrimaryKey="true" isGenerated="true" isMandatory="true" length="10"/>
 		<db-attribute name="name" type="VARCHAR" isMandatory="true" length="100"/>
+		<db-attribute name="password_hash" type="VARCHAR" length="500"/>
+		<db-attribute name="role" type="VARCHAR" length="12"/>
 	</db-entity>
 	<obj-entity name="Payment" className="org.chappyGolf.model.cayenne.Payment" dbEntityName="payment">
 		<obj-attribute name="amountCents" type="long" db-attribute-path="amount_cents"/>
@@ -64,6 +66,8 @@
 		<obj-attribute name="createdAt" type="java.time.LocalDateTime" db-attribute-path="created_at"/>
 		<obj-attribute name="email" type="java.lang.String" db-attribute-path="email"/>
 		<obj-attribute name="name" type="java.lang.String" db-attribute-path="name"/>
+		<obj-attribute name="passwordHash" type="java.lang.String" db-attribute-path="password_hash"/>
+		<obj-attribute name="role" type="java.lang.String" db-attribute-path="role"/>
 	</obj-entity>
 	<db-relationship name="reservation" source="payment" target="reservation">
 		<db-attribute-pair source="reservation_id" target="id"/>

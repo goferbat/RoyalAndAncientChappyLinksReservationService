@@ -66,6 +66,9 @@ public class GolfController {
         user.setName(dto.getName().trim());
         user.setEmail(dto.getEmail().trim().toLowerCase());
         user.setCreatedAt(LocalDateTime.now());
+        user.setRole("CUSTOMER");
+        user.setPasswordHash(null);
+
         context.commitChanges();
 
         return new UserResponseDto(
@@ -96,8 +99,13 @@ public class GolfController {
             user.setName(dto.getName().trim());
             user.setEmail(dto.getEmail().trim().toLowerCase());
             user.setCreatedAt(LocalDateTime.now());
+            user.setRole("CUSTOMER");
+            user.setPasswordHash(null);
         } else {
             user.setName(dto.getName().trim());
+            if (user.getRole() == null || user.getRole().isBlank()) {
+                user.setRole("CUSTOMER");
+            }
         }
 
         TeeTime teeTime = Cayenne.objectForPK(context, TeeTime.class, dto.getTeeTimeId());

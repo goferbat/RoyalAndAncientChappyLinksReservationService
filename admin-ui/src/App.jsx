@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
 function formatMoney(amountCents) {
@@ -37,9 +37,14 @@ function canRefund(status) {
 }
 
 export default function App() {
-  const [baseUrl, setBaseUrl] = useState("https://royalandancientchappylinksreservationservice-production.up.railway.app");
-  const [apiKey, setApiKey] = useState("dev-secret-key");
-  const [date, setDate] = useState("2026-03-29");
+  const [baseUrl, setBaseUrl] = useState(
+    "https://royalandancientchappylinksreservationservice-production.up.railway.app"
+  );
+
+  const [date, setDate] = useState(() => {
+    const now = new Date();
+    return now.toISOString().slice(0, 10);
+  });
   const [search, setSearch] = useState("");
   const [teeTimes, setTeeTimes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -47,12 +52,18 @@ export default function App() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  const [authChecked, setAuthChecked] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loggingIn, setLoggingIn] = useState(false);
+
   const headers = useMemo(
     () => ({
       "Content-Type": "application/json",
-      "X-ADMIN-API-KEY": apiKey,
     }),
-    [apiKey]
+    []
   );
 
   const filteredTeeTimes = useMemo(() => {
@@ -87,6 +98,95 @@ export default function App() {
     });
   }, [teeTimes, search]);
 
+  useEffect(() => {
+    checkAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseUrl]);
+
+  async function checkAuth() {
+    setError("");
+    try {
+      const res = await fetch(`${baseUrl}/api/auth/me`, {
+        method: "GET",
+        headers,
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        setCurrentUser(null);
+        return;
+      }
+
+      const data = await res.json();
+      setCurrentUser(data);
+    } catch (err) {
+      setCurrentUser(null);
+    } finally {
+      setAuthChecked(true);
+    }
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setLoggingIn(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const res = await fetch(`${baseUrl}/api/auth/login`, {
+        method: "POST",
+        headers,
+        credentials: "include",
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      const data = await res.json();
+      setCurrentUser(data);
+      setLoginPassword("");
+      setMessage(`Logged in as ${data.name || data.email}.`);
+    } catch (err) {
+      setCurrentUser(null);
+      setError(err.message || "Login failed.");
+    } finally {
+      setLoggingIn(false);
+    }
+  }
+
+  async function handleLogout() {
+    setLoading(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const res = await fetch(`${baseUrl}/api/auth/logout`, {
+        method: "POST",
+        headers,
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      setCurrentUser(null);
+      setTeeTimes([]);
+      setSearch("");
+      setLoginPassword("");
+      setMessage("Logged out.");
+    } catch (err) {
+      setError(err.message || "Logout failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function loadTeeSheet() {
     setLoading(true);
     setError("");
@@ -96,6 +196,7 @@ export default function App() {
       const res = await fetch(`${baseUrl}/api/admin/tee-sheet?date=${date}`, {
         method: "GET",
         headers,
+        credentials: "include",
       });
 
       if (!res.ok) {
@@ -128,6 +229,7 @@ export default function App() {
       const res = await fetch(url, {
         method: "POST",
         headers,
+        credentials: "include",
       });
 
       if (!res.ok) {
@@ -157,6 +259,7 @@ export default function App() {
       const res = await fetch(`${baseUrl}/api/admin/tee-times/seed/${date}`, {
         method: "POST",
         headers,
+        credentials: "include",
       });
 
       if (!res.ok) {
@@ -189,14 +292,18 @@ export default function App() {
           ) || "";
       }
 
-      const res = await fetch(`${baseUrl}/api/admin/tee-times/${teeTime.teeTimeId}/block`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify({
-          blocked: !teeTime.blocked,
-          blockedReason: !teeTime.blocked ? blockedReason : null,
-        }),
-      });
+      const res = await fetch(
+        `${baseUrl}/api/admin/tee-times/${teeTime.teeTimeId}/block`,
+        {
+          method: "PUT",
+          headers,
+          credentials: "include",
+          body: JSON.stringify({
+            blocked: !teeTime.blocked,
+            blockedReason: !teeTime.blocked ? blockedReason : null,
+          }),
+        }
+      );
 
       if (!res.ok) {
         throw new Error(await res.text());
@@ -220,11 +327,99 @@ export default function App() {
     return !!loadingAction[`${action}-${id}`];
   }
 
+  if (!authChecked) {
+    return (
+      <div className="page">
+        <div className="container">
+          <div className="panel">
+            <h1>Royal Chappy Admin</h1>
+            <p className="subtitle">Checking admin session...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="page">
+        <div className="container">
+          <div className="panel" style={{ maxWidth: 480, margin: "40px auto" }}>
+            <h1>Royal Chappy Admin Login</h1>
+            <p className="subtitle">Sign in with your admin account</p>
+
+            <div className="field">
+              <label>Backend URL</label>
+              <input
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+              />
+            </div>
+
+            <form onSubmit={handleLogin}>
+              <div className="field">
+                <label>Email</label>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  autoComplete="username"
+                />
+              </div>
+
+              <div className="field">
+                <label>Password</label>
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+              </div>
+
+              <div className="buttonRow">
+                <button type="submit" disabled={loggingIn}>
+                  {loggingIn ? "Signing In..." : "Sign In"}
+                </button>
+              </div>
+            </form>
+
+            {error && <div className="message error">{error}</div>}
+            {message && <div className="message success">{message}</div>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page">
       <div className="container">
-        <h1>Royal Chappy Admin</h1>
-        <p className="subtitle">Tee sheet, blocking, check-in, and payment actions</p>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 16,
+            alignItems: "flex-start",
+            marginBottom: 20,
+          }}
+        >
+          <div>
+            <h1>Royal Chappy Admin</h1>
+            <p className="subtitle">
+              Tee sheet, blocking, check-in, and payment actions
+            </p>
+            <div className="muted">
+              Signed in as {currentUser.name || currentUser.email} ({currentUser.role})
+            </div>
+          </div>
+
+          <div className="buttonRow">
+            <button onClick={handleLogout} className="secondary" disabled={loading}>
+              Log Out
+            </button>
+          </div>
+        </div>
 
         <div className="panel controls">
           <div className="field">
@@ -232,14 +427,6 @@ export default function App() {
             <input
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
-            />
-          </div>
-
-          <div className="field">
-            <label>Admin API Key</label>
-            <input
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
             />
           </div>
 

@@ -35,7 +35,7 @@ public abstract class _TeeTime extends BaseDataObject {
 
     protected boolean blocked;
     protected String blockedReason;
-    protected int capacity;
+    protected Integer capacity;
     protected LocalDateTime startTime;
 
     protected Object reservations;
@@ -60,7 +60,7 @@ public abstract class _TeeTime extends BaseDataObject {
         return this.blockedReason;
     }
 
-    public void setCapacity(int capacity) {
+    public void setCapacity(Integer capacity) {
         beforePropertyWrite("capacity", this.capacity, capacity);
         this.capacity = capacity;
     }
@@ -129,7 +129,7 @@ public abstract class _TeeTime extends BaseDataObject {
                 this.blockedReason = (String)val;
                 break;
             case "capacity":
-                this.capacity = val == null ? 0 : (int)val;
+                this.capacity = (Integer)val;
                 break;
             case "startTime":
                 this.startTime = (LocalDateTime)val;
@@ -155,7 +155,7 @@ public abstract class _TeeTime extends BaseDataObject {
         super.writeState(out);
         out.writeBoolean(this.blocked);
         out.writeObject(this.blockedReason);
-        out.writeInt(this.capacity);
+        out.writeObject(this.capacity);
         out.writeObject(this.startTime);
         out.writeObject(this.reservations);
     }
@@ -165,7 +165,7 @@ public abstract class _TeeTime extends BaseDataObject {
         super.readState(in);
         this.blocked = in.readBoolean();
         this.blockedReason = (String)in.readObject();
-        this.capacity = in.readInt();
+        this.capacity = (Integer)in.readObject();
         this.startTime = (LocalDateTime)in.readObject();
         this.reservations = in.readObject();
     }
