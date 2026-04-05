@@ -37,14 +37,13 @@ function canRefund(status) {
 }
 
 export default function App() {
-  const [baseUrl, setBaseUrl] = useState(
-    "https://royalandancientchappylinksreservationservice-production.up.railway.app"
-  );
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
   const [date, setDate] = useState(() => {
     const now = new Date();
     return now.toISOString().slice(0, 10);
   });
+
   const [search, setSearch] = useState("");
   const [teeTimes, setTeeTimes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -68,7 +67,6 @@ export default function App() {
 
   const filteredTeeTimes = useMemo(() => {
     const searchText = search.toLowerCase().trim();
-
     if (!searchText) return teeTimes;
 
     return teeTimes.filter((teeTime) => {
@@ -100,8 +98,7 @@ export default function App() {
 
   useEffect(() => {
     checkAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseUrl]);
+  }, []);
 
   async function checkAuth() {
     setError("");
@@ -119,7 +116,7 @@ export default function App() {
 
       const data = await res.json();
       setCurrentUser(data);
-    } catch (err) {
+    } catch {
       setCurrentUser(null);
     } finally {
       setAuthChecked(true);
@@ -236,10 +233,7 @@ export default function App() {
         throw new Error(await res.text());
       }
 
-      setMessage(
-        `${action.charAt(0).toUpperCase() + action.slice(1)} succeeded for reservation ${reservationId}.`
-      );
-
+      setMessage(`${action} succeeded for reservation ${reservationId}.`);
       await loadTeeSheet();
     } catch (err) {
       setError(err.message || `Failed to ${action}.`);
@@ -258,9 +252,7 @@ export default function App() {
     try {
       const res = await fetch(`${baseUrl}/api/admin/tee-times/seed/${date}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         credentials: "include",
       });
 
@@ -330,65 +322,20 @@ export default function App() {
   }
 
   if (!authChecked) {
-    return (
-      <div className="page">
-        <div className="container">
-          <div className="panel">
-            <h1>Royal Chappy Admin</h1>
-            <p className="subtitle">Checking admin session...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <div className="page"><div className="panel">Checking session...</div></div>;
   }
 
   if (!currentUser) {
     return (
       <div className="page">
-        <div className="container">
-          <div className="panel" style={{ maxWidth: 480, margin: "40px auto" }}>
-            <h1>Royal Chappy Admin Login</h1>
-            <p className="subtitle">Sign in with your admin account</p>
-
-            <div className="field">
-              <label>Backend URL</label>
-              <input
-                value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
-              />
-            </div>
-
-            <form onSubmit={handleLogin}>
-              <div className="field">
-                <label>Email</label>
-                <input
-                  type="email"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  autoComplete="username"
-                />
-              </div>
-
-              <div className="field">
-                <label>Password</label>
-                <input
-                  type="password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  autoComplete="current-password"
-                />
-              </div>
-
-              <div className="buttonRow">
-                <button type="submit" disabled={loggingIn}>
-                  {loggingIn ? "Signing In..." : "Sign In"}
-                </button>
-              </div>
-            </form>
-
-            {error && <div className="message error">{error}</div>}
-            {message && <div className="message success">{message}</div>}
-          </div>
+        <div className="panel">
+          <h1>Admin Login</h1>
+          <form onSubmit={handleLogin}>
+            <input value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="Email" />
+            <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Password" />
+            <button type="submit">{loggingIn ? "..." : "Login"}</button>
+          </form>
+          {error && <div>{error}</div>}
         </div>
       </div>
     );
@@ -396,194 +343,23 @@ export default function App() {
 
   return (
     <div className="page">
-      <div className="container">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 16,
-            alignItems: "flex-start",
-            marginBottom: 20,
-          }}
-        >
-          <div>
-            <h1>Royal Chappy Admin</h1>
-            <p className="subtitle">
-              Tee sheet, blocking, check-in, and payment actions
-            </p>
-            <div className="muted">
-              Signed in as {currentUser.name || currentUser.email} ({currentUser.role})
-            </div>
-          </div>
+      <div className="panel">
+        <h1>Admin</h1>
+        <button onClick={handleLogout}>Logout</button>
 
-          <div className="buttonRow">
-            <button onClick={handleLogout} className="secondary" disabled={loading}>
-              Log Out
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+
+        <button onClick={loadTeeSheet}>Load</button>
+        <button onClick={seedDate}>Seed</button>
+
+        {filteredTeeTimes.map((t) => (
+          <div key={t.teeTimeId}>
+            <h3>{t.slotLabel}</h3>
+            <button onClick={() => toggleBlocked(t)}>
+              {t.blocked ? "Unblock" : "Block"}
             </button>
           </div>
-        </div>
-
-        <div className="panel controls">
-          <div className="field">
-            <label>Backend URL</label>
-            <input
-              value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
-            />
-          </div>
-
-          <div className="field">
-            <label>Date</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-          </div>
-
-          <div className="buttonRow">
-            <button onClick={loadTeeSheet} disabled={loading}>
-              {loading ? "Loading..." : "Load Tee Sheet"}
-            </button>
-            <button onClick={seedDate} disabled={loading} className="secondary">
-              {loading ? "Working..." : "Seed Date"}
-            </button>
-          </div>
-
-          <div className="field">
-            <label>Search</label>
-            <input
-              placeholder="Search name, email, time, status..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {message && <div className="message success">{message}</div>}
-        {error && <div className="message error">{error}</div>}
-
-        <div className="teeSheet">
-          {filteredTeeTimes.length === 0 ? (
-            <div className="panel">No tee times found for this date.</div>
-          ) : (
-            filteredTeeTimes.map((teeTime) => (
-              <div
-                key={`${teeTime.teeTimeId}-${teeTime.startTime}`}
-                className={`panel teeGroup ${teeTime.blocked ? "blockedGroup" : ""}`}
-              >
-                <div className="teeGroupHeader">
-                  <div>
-                    <h2>{teeTime.slotLabel}</h2>
-                    <div className="muted">Tee Time ID {teeTime.teeTimeId}</div>
-                    <div className="muted">
-                      Capacity {teeTime.capacity} · Remaining {teeTime.spotsRemaining}
-                    </div>
-                    {teeTime.blocked && (
-                      <div className="message error inlineMessage">
-                        Blocked{teeTime.blockedReason ? `: ${teeTime.blockedReason}` : ""}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="buttonRow">
-                    <button
-                      onClick={() => toggleBlocked(teeTime)}
-                      disabled={loading || isActionLoading(teeTime.teeTimeId, "block")}
-                      className={teeTime.blocked ? "secondary" : ""}
-                    >
-                      {isActionLoading(teeTime.teeTimeId, "block")
-                        ? "Saving..."
-                        : teeTime.blocked
-                        ? "Unblock Tee Time"
-                        : "Block Tee Time"}
-                    </button>
-                  </div>
-                </div>
-
-                {teeTime.reservations?.length === 0 ? (
-                  <div className="reservationCard">
-                    <div>
-                      <strong>No reservations</strong>
-                      <div className="muted">
-                        This tee time is currently empty.
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="reservationList">
-                    {teeTime.reservations.map((row) => {
-                      const status = normalizeStatus(row.paymentStatus);
-
-                      return (
-                        <div key={row.reservationId} className="reservationCard">
-                          <div>
-                            <div className="reservationTop">
-                              <strong>{row.customerName}</strong>
-                              <span className={statusClass(status)}>{status}</span>
-                            </div>
-                            <div className="muted">{row.customerEmail}</div>
-                            <div className="details">
-                              <span>Party {row.partySize}</span>
-                              <span>
-                                Transportation: {row.transportation ? "Yes" : "No"}
-                              </span>
-                              <span>{row.tierName}</span>
-                              <span>{formatMoney(row.amountCents)}</span>
-                            </div>
-                          </div>
-
-                          <div className="buttonRow">
-                            <button
-                              onClick={() => runAction(row.reservationId, "capture")}
-                              disabled={
-                                loading ||
-                                isActionLoading(row.reservationId, "capture") ||
-                                !canCapture(status)
-                              }
-                            >
-                              {isActionLoading(row.reservationId, "capture")
-                                ? "Capturing..."
-                                : "Capture"}
-                            </button>
-
-                            <button
-                              onClick={() => runAction(row.reservationId, "cancel")}
-                              disabled={
-                                loading ||
-                                isActionLoading(row.reservationId, "cancel") ||
-                                !canCancel(status)
-                              }
-                              className="secondary"
-                            >
-                              {isActionLoading(row.reservationId, "cancel")
-                                ? "Cancelling..."
-                                : "Cancel"}
-                            </button>
-
-                            <button
-                              onClick={() => runAction(row.reservationId, "refund")}
-                              disabled={
-                                loading ||
-                                isActionLoading(row.reservationId, "refund") ||
-                                !canRefund(status)
-                              }
-                              className="secondary"
-                            >
-                              {isActionLoading(row.reservationId, "refund")
-                                ? "Refunding..."
-                                : "Refund"}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+        ))}
       </div>
     </div>
   );
