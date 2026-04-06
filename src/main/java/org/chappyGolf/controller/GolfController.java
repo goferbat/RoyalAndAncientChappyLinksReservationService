@@ -25,13 +25,13 @@ public class GolfController {
     private final ObjectContext context;
     private final SquareClient squareClient;
     private final String squareLocationId;
-    private final org.chappyGolf.service.TeeTimeSeedService teeTimeSeedService;
+    private final org.chappyGolf.services.TeeTimeSeedService teeTimeSeedService;
     private final org.chappyGolf.services.EmailService emailService;
 
     public GolfController(ObjectContext context,
                           SquareClient squareClient,
                           @Value("${square.location.id}") String squareLocationId,
-                          org.chappyGolf.service.TeeTimeSeedService teeTimeSeedService,
+                          org.chappyGolf.services.TeeTimeSeedService teeTimeSeedService,
                           org.chappyGolf.services.EmailService emailService) {
         this.context = context;
         this.squareClient = squareClient;

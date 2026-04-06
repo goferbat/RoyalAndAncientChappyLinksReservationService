@@ -12,7 +12,7 @@ import org.chappyGolf.dto.UpdateTeeTimeBlockRequest;
 import org.chappyGolf.model.cayenne.Payment;
 import org.chappyGolf.model.cayenne.Reservation;
 import org.chappyGolf.model.cayenne.TeeTime;
-import org.chappyGolf.service.TeeTimeSeedService;
+import org.chappyGolf.services.TeeTimeSeedService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
