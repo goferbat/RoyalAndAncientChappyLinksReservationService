@@ -103,7 +103,7 @@ export default function App() {
   const [error, setError] = useState("");
 
   const [paymentResult, setPaymentResult] = useState({
-    status: "idle", // idle | success | failure
+    status: "idle",
     reservationId: null,
     paymentStatus: "",
     message: "",
@@ -368,7 +368,11 @@ export default function App() {
     return (
       <div className="page">
         <div className="container">
-          <section className="panel" style={{ maxWidth: 700, margin: "40px auto" }}>
+          <section className="panel confirmationPanel">
+            <div className="brandMarkWrap">
+              <img src="/reginald-logo.png" alt="Royal Chappy logo" className="brandMark" />
+            </div>
+
             <h1>Booking Confirmed</h1>
             <p className="subtitle">
               Your payment went through and your reservation is confirmed.
@@ -408,8 +412,10 @@ export default function App() {
     <div className="page">
       <div className="container">
         <header className="hero">
-          <h1>Royal Chappy Booking</h1>
-          <p className="subtitle">
+          <div className="brandMarkWrap">
+            <img src="/reginald-logo.png" alt="Royal Chappy logo" className="brandMark" />
+          </div>
+          <p className="subtitle heroSubtitle">
             Choose your date, pick a tee time, and reserve your round.
           </p>
         </header>
