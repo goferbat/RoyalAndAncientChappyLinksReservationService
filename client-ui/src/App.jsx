@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CreditCard, PaymentForm } from "react-square-web-payments-sdk";
 import "./App.css";
 
-const TRANSPORTATION_PRICE_CENTS = 1000;
+const TRANSPORTATION_PRICE_CENTS = 1200;
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
