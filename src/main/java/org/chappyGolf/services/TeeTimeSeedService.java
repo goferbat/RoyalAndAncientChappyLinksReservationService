@@ -25,7 +25,7 @@ public class TeeTimeSeedService {
     }
 
     public void seedForDate(LocalDate date) {
-        for (int hour = 7; hour <= 17; hour++) {
+        for (int hour = 10; hour <= 17; hour++) {
             LocalDateTime startTime = LocalDateTime.of(date, LocalTime.of(hour, 0));
 
             TeeTime existing = ObjectSelect.query(TeeTime.class)
@@ -35,7 +35,7 @@ public class TeeTimeSeedService {
             if (existing == null) {
                 TeeTime teeTime = context.newObject(TeeTime.class);
                 teeTime.setStartTime(startTime);
-                teeTime.setCapacity(8);
+                teeTime.setCapacity(12);
             }
         }
 
