@@ -1,8 +1,10 @@
-package org.chappyGolf.service;
+package org.chappyGolf.services;
 
 import org.apache.cayenne.ObjectContext;
 import org.apache.cayenne.query.ObjectSelect;
 import org.chappyGolf.model.cayenne.TeeTime;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -19,9 +21,17 @@ public class TeeTimeSeedService {
         this.context = context;
     }
 
-    @Scheduled(cron = "0 5 0 * * *")
-    public void seedTomorrowTeeTimes() {
-        seedForDate(LocalDate.now().plusDays(1));
+    @EventListener(ApplicationReadyEvent.class)
+    public void seedOnStartup() {
+        seedNextTwoWeeks();
+    }
+
+    @Scheduled(cron = "0 0 6 * * SUN", zone = "America/New_York")
+    public void seedNextTwoWeeks() {
+        LocalDate today = LocalDate.now();
+        for (int i = 0; i <= 13; i++) {
+            seedForDate(today.plusDays(i));
+        }
     }
 
     public void seedForDate(LocalDate date) {

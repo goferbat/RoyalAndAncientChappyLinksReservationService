@@ -12,8 +12,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 public class ReservationSystemApplication {
     public static void main(String[] args) {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        System.out.println(encoder.encode("chappy123"));
-
         SpringApplication.run(ReservationSystemApplication.class, args);
     }
 }
