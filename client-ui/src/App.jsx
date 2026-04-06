@@ -370,9 +370,10 @@ export default function App() {
         <div className="container">
           <section className="panel confirmationPanel">
             <div className="brandMarkWrap">
-              <img src="/reginald-logo.png" alt="Royal Chappy logo" className="brandMark" />
-            </div>
-
+               <a href="https://royalchappy.com" target="_blank" rel="noopener noreferrer">
+                 <img src="/reginald-logo.png" alt="Royal Chappy logo" className="brandMark" />
+               </a>
+             </div>
             <h1>Booking Confirmed</h1>
             <p className="subtitle">
               Your payment went through and your reservation is confirmed.
@@ -401,6 +402,27 @@ export default function App() {
               <button type="button" onClick={resetForm}>
                 Back to Booking
               </button>
+              <a
+              href="https://royalchappy.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="secondary"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textDecoration: "none",
+                  color: "var(--rc-gold-soft)",
+                  border: "1px solid rgba(190, 134, 27, 0.45)",
+                  borderRadius: "12px",
+                  padding: "11px 15px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  background: "transparent",
+                }}
+              >
+                Return to Royal Chappy
+              </a>
             </div>
           </section>
         </div>
@@ -413,7 +435,9 @@ export default function App() {
       <div className="container">
         <header className="hero">
           <div className="brandMarkWrap">
-            <img src="/reginald-logo.png" alt="Royal Chappy logo" className="brandMark" />
+            <a href="https://royalchappy.com" target="_blank" rel="noopener noreferrer">
+              <img src="/reginald-logo.png" alt="Royal Chappy logo" className="brandMark" />
+            </a>
           </div>
           <p className="subtitle heroSubtitle">
             Choose your date, pick a tee time, and reserve your round.
@@ -576,7 +600,7 @@ export default function App() {
                 <input
                   value={form.name}
                   onChange={(e) => updateField("name", e.target.value)}
-                  placeholder="Declan Halbert"
+                  placeholder="Sir Reginald"
                 />
               </div>
 
