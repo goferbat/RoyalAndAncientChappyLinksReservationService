@@ -23,6 +23,8 @@ h1 {
   margin: 0 0 8px;
   color: #111827;
   font-weight: 700;
+  text-align: center;
+  margin-bottom: 30px;
 
 }
 
@@ -53,6 +55,7 @@ h2 {
 .field {
   display: grid;
   gap: 6px;
+  margin-bottom: 14px;
 }
 
 label {
@@ -71,6 +74,8 @@ input {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  justify-content: center;
+  margin-top: 12px;
 }
 
 button {
@@ -116,6 +121,10 @@ button:disabled {
 }
 
 .teeGroupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
   margin-bottom: 14px;
 }
 

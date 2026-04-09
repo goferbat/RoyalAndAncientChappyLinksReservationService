@@ -345,7 +345,6 @@ export default function App() {
         <div className="container">
           <div className="panel" style={{ maxWidth: 480, margin: "40px auto" }}>
             <h1>Royal Chappy Admin Login</h1>
-            <p className="subtitle">Sign in with your admin account</p>
 
             <form onSubmit={handleLogin}>
               <div className="field">
