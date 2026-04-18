@@ -40,11 +40,17 @@ function formatLongDate(dateStr) {
 
 function todayInputValue() {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+
+  const nyDate = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+
+  return nyDate;
 }
+
 
 function normalizePaymentError(rawMessage) {
   const message = (rawMessage || "").toLowerCase();
@@ -127,14 +133,26 @@ export default function App() {
     loadTeeTimes();
   }, []);
 
-  const filteredTeeTimes = useMemo(() => {
-    return teeTimes
-      .filter((slot) => {
-        if (!slot?.startTime) return false;
-        return slot.startTime.slice(0, 10) === selectedDate;
-      })
-      .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
-  }, [teeTimes, selectedDate]);
+const filteredTeeTimes = useMemo(() => {
+  const now = new Date();
+
+  return teeTimes
+    .filter((slot) => {
+      if (!slot?.startTime) return false;
+
+      const slotDate = new Date(slot.startTime);
+      if (Number.isNaN(slotDate.getTime())) return false;
+
+      const slotDay = slot.startTime.slice(0, 10);
+
+      if (slotDay !== selectedDate) return false;
+
+      if (slotDate < now) return false;
+
+      return true;
+    })
+    .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
+}, [teeTimes, selectedDate]);
 
   const selectedSlot = useMemo(() => {
     return filteredTeeTimes.find(
@@ -471,6 +489,7 @@ export default function App() {
                   <input
                     type="date"
                     value={selectedDate}
+                    min={todayInputValue()}
                     onChange={(e) => setSelectedDate(e.target.value)}
                   />
                 </div>

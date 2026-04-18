@@ -250,7 +250,6 @@ public class GolfController {
                 .selectOne(context);
         if (payment == null) throw new RuntimeException("Payment not found");
 
-        // ✅ Build the request with the paymentId
         GetPaymentsRequest req = GetPaymentsRequest.builder()
                 .paymentId(payment.getSquarePaymentId())
                 .build();
