@@ -6,6 +6,7 @@ const TRANSPORTATION_PRICE_CENTS = 1200;
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
+
 function formatMoney(amountCents) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -101,6 +102,7 @@ export default function App() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
   const [paymentResult, setPaymentResult] = useState({
     status: "idle",
@@ -431,18 +433,24 @@ export default function App() {
   }
 
   return (
-    <div className="page">
-      <div className="container">
-        <header className="hero">
-          <div className="brandMarkWrap">
-            <a href="https://royalchappy.com" target="_blank" rel="noopener noreferrer">
-              <img src="/reginald-logo.png" alt="Royal Chappy logo" className="brandMark" />
-            </a>
-          </div>
-          <p className="subtitle heroSubtitle">
-            Choose your date, pick a tee time, and reserve your round.
-          </p>
-        </header>
+<div className="page">
+  <div className="container">
+    <header className="hero">
+      <div className="brandMarkWrap">
+        <a href="https://royalchappy.com" target="_blank" rel="noopener noreferrer">
+          <img src="/reginald-logo.png" alt="Royal Chappy logo" className="brandMark" />
+        </a>
+      </div>
+        <div className="heroSubtitle" style={{ textAlign: "center" }}>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => setHowItWorksOpen(true)}
+          >
+            How it works
+          </button>
+        </div>
+    </header>
 
         {success && <div className="message success">{success}</div>}
         {error && <div className="message error">{error}</div>}
@@ -700,6 +708,43 @@ export default function App() {
             </div>
           </section>
         </div>
+        {howItWorksOpen && (
+          <div
+            style={{
+              position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              zIndex: 100, padding: "1rem",
+            }}
+            onClick={() => setHowItWorksOpen(false)}
+          >
+            <div
+              style={{ background: "#f5f2eb", borderRadius: 16, padding: "2rem", maxWidth: 520, width: "100%" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+                <h2 style={{ margin: 0 }}>How it works</h2>
+                <button type="button" className="secondary" onClick={() => setHowItWorksOpen(false)}>✕</button>
+              </div>
+
+              {[
+                { n: 1, title: "Choose a date & tee time", desc: "Tee times are one-hour windows — your round can start anytime within that window and finish when you like." },
+                { n: 2, title: "Select a rate tier", desc: "Islander rates are available for year-round residents with ID. Bring yours to check-in." },
+                { n: 3, title: "Add transportation if needed", desc: "Rides from the Chappy Ferry depart at the top of the hour. Minimum 2-hour notice required. Call 508-939-4055 with any issues." },
+                { n: 4, title: "Pay at check-in", desc: "A credit card holds your reservation. The final charge happens at check-in, not online." },
+              ].map(({ n, title, desc }) => (
+                <div key={n} style={{ display: "flex", gap: 14, marginBottom: "1.25rem" }}>
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid rgba(190,134,27,0.45)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontWeight: 800, fontSize: 13, color: "var(--rc-gold-soft)" }}>{n}</div>
+                  <div>
+                    <p style={{ margin: "0 0 2px", fontWeight: 800 }}>{title}</p>
+                    <p style={{ margin: 0, opacity: 0.7, fontSize: 14, lineHeight: 1.6 }}>{desc}</p>
+                  </div>
+                </div>
+              ))}
+
+              <p style={{ margin: "1rem 0 0", fontSize: 12, opacity: 0.5 }}>Club and pull-cart rentals available at the Crow Shop. See you on the Chappy side.</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
