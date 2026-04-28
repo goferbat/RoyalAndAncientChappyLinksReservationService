@@ -509,4 +509,48 @@ public class GolfController {
         payment.setStatus("REFUNDED");
         context.commitChanges();
     }
+
+    public ReservationStatusResponse noShowReservation(int id) throws SquareApiException {
+        Reservation reservation = Cayenne.objectForPK(context, Reservation.class, id);
+        if (reservation == null) throw new RuntimeException("Reservation not found");
+
+        Payment payment = ObjectSelect.query(Payment.class)
+                .where(Payment.RESERVATION.eq(reservation))
+                .selectOne(context);
+        if (payment == null) throw new RuntimeException("Payment not found");
+
+        if (!"AUTHORIZED".equals(payment.getStatus()) && !"APPROVED".equals(payment.getStatus())) {
+            throw new RuntimeException("Payment is not in an authorized state (current: " + payment.getStatus() + ")");
+        }
+
+        // Capture full amount
+        CompletePaymentRequest captureReq = CompletePaymentRequest.builder()
+                .paymentId(payment.getSquarePaymentId())
+                .build();
+        squareClient.payments().complete(captureReq);
+
+        // Refund 50%
+        long refundAmount = payment.getAmountCents() / 2;
+        RefundPaymentRequest refundReq = RefundPaymentRequest.builder()
+                .idempotencyKey(UUID.randomUUID().toString())
+                .amountMoney(Money.builder()
+                        .amount(refundAmount)
+                        .currency(Currency.USD)
+                        .build())
+                .paymentId(payment.getSquarePaymentId())
+                .reason("No-show: 50% charge per cancellation policy")
+                .build();
+        squareClient.refunds().refundPayment(refundReq);
+
+        payment.setAmountCents(payment.getAmountCents() - refundAmount);
+        payment.setStatus("NO_SHOW");
+        context.commitChanges();
+
+        return new ReservationStatusResponse(
+                Cayenne.intPKForObject(reservation),
+                "NO_SHOW",
+                reservation.getPartySize(),
+                reservation.getTeeTime().getStartTime()
+        );
+    }
 }
