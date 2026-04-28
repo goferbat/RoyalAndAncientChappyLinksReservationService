@@ -526,7 +526,6 @@ const filteredTeeTimes = useMemo(() => {
                           <div className="slotTime">
                             {formatSlot(slot.startTime)}
                           </div>
-                          <div className="muted">Tee Time #{slot.id}</div>
                         </div>
 
                         <div
