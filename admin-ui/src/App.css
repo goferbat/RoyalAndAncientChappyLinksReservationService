@@ -78,6 +78,7 @@ h2 {
   box-shadow: var(--rc-shadow);
   border: 1px solid rgba(45, 106, 45, 0.2);
   margin-bottom: 16px;
+  overflow: hidden;
 }
 
 .panel form {
@@ -290,6 +291,9 @@ button:disabled {
 input[type="date"] {
   max-width: 100%;
   min-width: 0;
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 @media (max-width: 700px) {
