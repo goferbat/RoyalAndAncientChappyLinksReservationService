@@ -648,7 +648,12 @@ const filteredTeeTimes = useMemo(() => {
                   max="8"
                   value={form.partySize}
                   onChange={(e) => {
-                    const val = Math.min(8, Math.max(1, Number(e.target.value)));
+                    const raw = e.target.value;
+                    if (raw === "") {
+                      updateField("partySize", "");
+                      return;
+                    }
+                    const val = Math.min(8, Math.max(1, Number(raw)));
                     updateField("partySize", val);
                   }}
                 />
