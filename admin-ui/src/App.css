@@ -295,4 +295,14 @@ button:disabled {
   .teeGroupHeader {
     flex-direction: column;
   }
+
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  input[type="date"] {
+    width: 100%;
+    min-width: 0;
+  }
 }

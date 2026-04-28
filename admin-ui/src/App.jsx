@@ -390,7 +390,7 @@ export default function App() {
   return (
     <div className="page">
       <div className="container">
-        <div
+        <div className="pageHeader"
           style={{
             display: "flex",
             justifyContent: "space-between",
