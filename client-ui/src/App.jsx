@@ -772,8 +772,18 @@ const filteredTeeTimes = useMemo(() => {
               }}>
                 <strong>Cancellation policy:</strong> Bookings not canceled before the day of play, and no-shows, will be charged 50% of the total cost. Seems only fair.
               </div>
-
-              <p style={{ margin: "1rem 0 0", fontSize: 12, opacity: 0.5 }}>Club and pull-cart rentals available at the Crow Shop. See you on the Chappy side.</p>
+                <p style={{
+                  margin: "1rem 0 0",
+                  fontSize: 13,
+                  color: "var(--rc-muted)",
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(45, 106, 45, 0.2)",
+                  background: "rgba(45, 106, 45, 0.04)",
+                  lineHeight: 1.6,
+                }}>
+                  🏌️ Club and pull-cart rentals available at the Crow Shop. See you on the Chappy side.
+                </p>
             </div>
           </div>
         )}
