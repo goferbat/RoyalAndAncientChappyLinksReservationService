@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { CreditCard, PaymentForm } from "react-square-web-payments-sdk";
+import { Analytics } from "@vercel/analytics/react";
 import "./App.css";
 
 const TRANSPORTATION_PRICE_CENTS = 1200;
@@ -796,6 +797,7 @@ const filteredTeeTimes = useMemo(() => {
           </div>
         )}
       </div>
+      <Analytics />
     </div>
   );
 }
