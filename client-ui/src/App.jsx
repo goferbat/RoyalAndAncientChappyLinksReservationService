@@ -462,7 +462,6 @@ const filteredTeeTimes = useMemo(() => {
         <div className="heroSubtitle" style={{ textAlign: "center" }}>
           <button
             type="button"
-            className="secondary"
             onClick={() => setHowItWorksOpen(true)}
           >
             How it works
@@ -759,6 +758,20 @@ const filteredTeeTimes = useMemo(() => {
                   </div>
                 </div>
               ))}
+
+              <div style={{
+                marginTop: "0.25rem",
+                marginBottom: "1rem",
+                padding: "12px 14px",
+                borderRadius: 10,
+                background: "var(--rc-warning-bg)",
+                border: "1px solid var(--rc-warning-border)",
+                color: "var(--rc-warning-text)",
+                fontSize: 14,
+                lineHeight: 1.6,
+              }}>
+                <strong>Cancellation policy:</strong> Bookings not canceled before the day of play, and no-shows, will be charged 50% of the total cost. Seems only fair.
+              </div>
 
               <p style={{ margin: "1rem 0 0", fontSize: 12, opacity: 0.5 }}>Club and pull-cart rentals available at the Crow Shop. See you on the Chappy side.</p>
             </div>
