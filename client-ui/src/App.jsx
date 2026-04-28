@@ -268,8 +268,8 @@ const filteredTeeTimes = useMemo(() => {
     if (!form.email.trim()) return "Email is required.";
 
     const partySize = Number(form.partySize);
-    if (partySize < 1 || partySize > 6) {
-      return "Party size must be between 1 and 6.";
+    if (partySize < 1 || partySize > 8) {
+      return "Party size must be between 1 and 8.";
     }
 
     if (!form.teeTimeId) return "Please select a tee time.";
@@ -645,9 +645,12 @@ const filteredTeeTimes = useMemo(() => {
                 <input
                   type="number"
                   min="1"
-                  max="6"
+                  max="8"
                   value={form.partySize}
-                  onChange={(e) => updateField("partySize", e.target.value)}
+                  onChange={(e) => {
+                    const val = Math.min(8, Math.max(1, Number(e.target.value)));
+                    updateField("partySize", val);
+                  }}
                 />
               </div>
 
