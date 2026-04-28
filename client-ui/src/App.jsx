@@ -349,7 +349,8 @@ const filteredTeeTimes = useMemo(() => {
         status: "success",
         reservationId: data.reservationId,
         paymentStatus: data.paymentStatus || "COMPLETED",
-        message: "Your booking is confirmed.",
+        message: "Your booking is confirmed.  " +
+            "REMINDER: The final charge happens at check-in, not online. Failure to show up will result in a charge of 50% of the total cost.",
       });
 
       await loadTeeTimes();
@@ -396,7 +397,7 @@ const filteredTeeTimes = useMemo(() => {
              </div>
             <h1>Booking Confirmed</h1>
             <p className="subtitle">
-              Your payment went through and your reservation is confirmed.
+              Your reservation is confirmed.
             </p>
 
             <div className="summary">

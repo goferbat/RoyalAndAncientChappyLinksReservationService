@@ -546,6 +546,30 @@ public class GolfController {
         payment.setStatus("NO_SHOW");
         context.commitChanges();
 
+        try {
+            emailService.sendNoShowChargeNotification(
+                    reservation.getUser().getName(),
+                    reservation.getUser().getEmail(),
+                    reservation.getTeeTime().getStartTime(),
+                    reservation.getTier().getName(),
+                    reservation.getPartySize(),
+                    payment.getAmountCents(),
+                    Cayenne.intPKForObject(reservation)
+            );
+
+            emailService.sendNoShowChargeConfirmationToCustomer(
+                    reservation.getUser().getName(),
+                    reservation.getUser().getEmail(),
+                    reservation.getTeeTime().getStartTime(),
+                    reservation.getTier().getName(),
+                    reservation.getPartySize(),
+                    payment.getAmountCents(),
+                    Cayenne.intPKForObject(reservation)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         return new ReservationStatusResponse(
                 Cayenne.intPKForObject(reservation),
                 "NO_SHOW",
