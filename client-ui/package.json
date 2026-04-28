@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-square-web-payments-sdk": "^3.3.0"
