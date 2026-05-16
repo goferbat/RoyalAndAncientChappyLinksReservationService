@@ -580,15 +580,13 @@ const filteredTeeTimes = useMemo(() => {
                       <div className="tierRow">
                         <button
                           type="button"
-                          className={`tierButton ${
-                            transportationSelected ? "selectedTier" : ""
-                          }`}
-                          disabled={unavailable}
-                          onClick={() => toggleTransportation(slot)}
+                          className="tierButton"
+                          disabled={true}
+                          style={{ opacity: 0.5, cursor: "not-allowed" }}
                         >
                           <span>Transportation</span>
-                          <span className="tierPrice">
-                            {formatMoney(TRANSPORTATION_PRICE_CENTS)} / player
+                          <span className="tierPrice" style={{ fontStyle: "italic" }}>
+                            Available later this summer
                           </span>
                         </button>
                       </div>
