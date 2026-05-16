@@ -163,4 +163,58 @@ public class EmailService {
 
         sendEmail(customerEmail, "Your Reservation Is Confirmed #" + reservationId, text);
     }
+
+    public void sendNoShowChargeNotification(
+            String customerName,
+            String customerEmail,
+            LocalDateTime teeTime,
+            String tierName,
+            int partySize,
+            long amountCents,
+            int reservationId
+    ) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, MMM d yyyy 'at' h:mm a");
+        String formattedTeeTime = teeTime.atZone(ZoneId.of("America/New_York")).format(formatter);
+        String formattedAmount = String.format("$%.2f", amountCents / 100.0);
+
+        String text =
+                "A no-show charge has been applied.\n\n" +
+                        "Reservation ID: " + reservationId + "\n" +
+                        "Customer: " + customerName + "\n" +
+                        "Customer Email: " + customerEmail + "\n" +
+                        "Tee Time: " + formattedTeeTime + "\n" +
+                        "Tier: " + tierName + "\n" +
+                        "Party Size: " + partySize + "\n" +
+                        "Amount Charged (50%): " + formattedAmount + "\n";
+
+        sendEmail(adminEmail, "No-Show Charge Applied #" + reservationId, text);
+    }
+
+    public void sendNoShowChargeConfirmationToCustomer(
+            String customerName,
+            String customerEmail,
+            LocalDateTime teeTime,
+            String tierName,
+            int partySize,
+            long amountCents,
+            int reservationId
+    ) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, MMM d yyyy 'at' h:mm a");
+        String formattedTeeTime = teeTime.atZone(ZoneId.of("America/New_York")).format(formatter);
+        String formattedAmount = String.format("$%.2f", amountCents / 100.0);
+
+        String text =
+                "Hi " + customerName + ",\n\n" +
+                        "We missed you today at Royal Chappy. As per our cancellation policy, " +
+                        "a no-show fee of 50% of your reservation total has been charged to your card.\n\n" +
+                        "Reservation ID: " + reservationId + "\n" +
+                        "Tee Time: " + formattedTeeTime + "\n" +
+                        "Tier: " + tierName + "\n" +
+                        "Party Size: " + partySize + "\n" +
+                        "Amount Charged: " + formattedAmount + "\n\n" +
+                        "If you have any questions, please don't hesitate to reach out. " +
+                        "We hope to see you on the Chappy side soon.";
+
+        sendEmail(customerEmail, "No-Show Fee Applied – Reservation #" + reservationId, text);
+    }
 }

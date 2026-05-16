@@ -38,6 +38,11 @@ function canRefund(status) {
   return s === "COMPLETED";
 }
 
+function canNoShow(status) {
+  const s = normalizeStatus(status);
+  return s === "APPROVED" || s === "AUTHORIZED";
+}
+
 export default function App() {
   const [date, setDate] = useState(() => {
     const now = new Date();
@@ -385,7 +390,7 @@ export default function App() {
   return (
     <div className="page">
       <div className="container">
-        <div
+        <div className="pageHeader"
           style={{
             display: "flex",
             justifyContent: "space-between",
@@ -515,45 +520,60 @@ export default function App() {
 
                           <div className="buttonRow">
                             <button
-                              onClick={() => runAction(row.reservationId, "capture")}
-                              disabled={
-                                loading ||
-                                isActionLoading(row.reservationId, "capture") ||
-                                !canCapture(status)
-                              }
+                                onClick={() => runAction(row.reservationId, "capture")}
+                                disabled={
+                                    loading ||
+                                    isActionLoading(row.reservationId, "capture") ||
+                                    !canCapture(status)
+                                }
                             >
                               {isActionLoading(row.reservationId, "capture")
-                                ? "Capturing..."
-                                : "Capture"}
+                                  ? "Capturing..."
+                                  : "Capture"}
                             </button>
 
                             <button
-                              onClick={() => runAction(row.reservationId, "cancel")}
-                              disabled={
-                                loading ||
-                                isActionLoading(row.reservationId, "cancel") ||
-                                !canCancel(status)
-                              }
-                              className="secondary"
+                                onClick={() => runAction(row.reservationId, "cancel")}
+                                disabled={
+                                    loading ||
+                                    isActionLoading(row.reservationId, "cancel") ||
+                                    !canCancel(status)
+                                }
+                                className="secondary"
                             >
                               {isActionLoading(row.reservationId, "cancel")
-                                ? "Cancelling..."
-                                : "Cancel"}
+                                  ? "Cancelling..."
+                                  : "Cancel"}
                             </button>
 
                             <button
-                              onClick={() => runAction(row.reservationId, "refund")}
-                              disabled={
-                                loading ||
-                                isActionLoading(row.reservationId, "refund") ||
-                                !canRefund(status)
-                              }
-                              className="secondary"
+                                onClick={() => runAction(row.reservationId, "refund")}
+                                disabled={
+                                    loading ||
+                                    isActionLoading(row.reservationId, "refund") ||
+                                    !canRefund(status)
+                                }
+                                className="secondary"
                             >
                               {isActionLoading(row.reservationId, "refund")
-                                ? "Refunding..."
-                                : "Refund"}
+                                  ? "Refunding..."
+                                  : "Refund"}
                             </button>
+
+                            <button
+                                onClick={() => runAction(row.reservationId, "no-show")}
+                                disabled={
+                                    loading ||
+                                    isActionLoading(row.reservationId, "no-show") ||
+                                    !canNoShow(status)
+                                }
+                                className="secondary"
+                            >
+                              {isActionLoading(row.reservationId, "no-show")
+                                  ? "Processing..."
+                                  : "No Show (50%)"}
+                            </button>
+
                           </div>
                         </div>
                       );

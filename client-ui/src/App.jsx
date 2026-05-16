@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { CreditCard, PaymentForm } from "react-square-web-payments-sdk";
+import { Analytics } from "@vercel/analytics/react";
 import "./App.css";
 
-const TRANSPORTATION_PRICE_CENTS = 1200;
+const TRANSPORTATION_PRICE_CENTS = 800;
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
@@ -268,8 +269,8 @@ const filteredTeeTimes = useMemo(() => {
     if (!form.email.trim()) return "Email is required.";
 
     const partySize = Number(form.partySize);
-    if (partySize < 1 || partySize > 6) {
-      return "Party size must be between 1 and 6.";
+    if (partySize < 1 || partySize > 8) {
+      return "Party size must be between 1 and 8.";
     }
 
     if (!form.teeTimeId) return "Please select a tee time.";
@@ -349,7 +350,8 @@ const filteredTeeTimes = useMemo(() => {
         status: "success",
         reservationId: data.reservationId,
         paymentStatus: data.paymentStatus || "COMPLETED",
-        message: "Your booking is confirmed.",
+        message: "Your booking is confirmed.  " +
+            "REMINDER: The final charge happens at check-in, not online. Failure to show up will result in a charge of 50% of the total cost.",
       });
 
       await loadTeeTimes();
@@ -396,7 +398,7 @@ const filteredTeeTimes = useMemo(() => {
              </div>
             <h1>Booking Confirmed</h1>
             <p className="subtitle">
-              Your payment went through and your reservation is confirmed.
+              Your reservation is confirmed.
             </p>
 
             <div className="summary">
@@ -526,7 +528,6 @@ const filteredTeeTimes = useMemo(() => {
                           <div className="slotTime">
                             {formatSlot(slot.startTime)}
                           </div>
-                          <div className="muted">Tee Time #{slot.id}</div>
                         </div>
 
                         <div
@@ -643,9 +644,17 @@ const filteredTeeTimes = useMemo(() => {
                 <input
                   type="number"
                   min="1"
-                  max="6"
+                  max="8"
                   value={form.partySize}
-                  onChange={(e) => updateField("partySize", e.target.value)}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "") {
+                      updateField("partySize", "");
+                      return;
+                    }
+                    const val = Math.min(8, Math.max(1, Number(raw)));
+                    updateField("partySize", val);
+                  }}
                 />
               </div>
 
@@ -786,6 +795,7 @@ const filteredTeeTimes = useMemo(() => {
           </div>
         )}
       </div>
+      <Analytics />
     </div>
   );
 }

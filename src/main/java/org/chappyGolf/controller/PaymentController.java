@@ -39,6 +39,7 @@ public class PaymentController {
                 .idempotencyKey(UUID.randomUUID().toString())
                 .amountMoney(amount)
                 .locationId(squareLocationId)
+                .autocomplete(false)
                 .build();
 
         return squareClient.payments().create(request);

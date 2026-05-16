@@ -16,7 +16,7 @@ public class SquareConfig {
     @Bean
     public SquareClient squareClient() {
         return new SquareClientBuilder()
-                .environment(Environment.SANDBOX) // use PRODUCTION later
+                .environment(Environment.PRODUCTION) // use PRODUCTION later
                 .token(accessToken)
                 .build();
     }

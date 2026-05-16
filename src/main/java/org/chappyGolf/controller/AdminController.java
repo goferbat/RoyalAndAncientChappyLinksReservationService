@@ -172,4 +172,10 @@ public class AdminController {
         teeTimeSeedService.seedForDate(date);
         return "Seeded tee times for " + date;
     }
+
+    @PostMapping("/reservations/{id}/no-show")
+    public ReservationStatusResponse noShow(@PathVariable int id) throws SquareApiException {
+        return golfController.noShowReservation(id);
+    }
+
 }
