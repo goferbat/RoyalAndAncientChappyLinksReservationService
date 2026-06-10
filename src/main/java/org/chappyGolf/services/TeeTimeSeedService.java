@@ -9,6 +9,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -41,6 +42,12 @@ public class TeeTimeSeedService {
         ObjectContext ctx = cayenneRuntime.newContext();
 
         for (int hour = 10; hour <= 17; hour++) {
+
+            // Wednesday 5pm is reserved for the caddie group — skip seeding it
+            if (date.getDayOfWeek() == DayOfWeek.WEDNESDAY && hour == 17) {
+                continue;
+            }
+
             LocalDateTime startTime = LocalDateTime.of(date, LocalTime.of(hour, 0));
 
             TeeTime existing = ObjectSelect.query(TeeTime.class)
