@@ -10,6 +10,20 @@ function formatMoney(amountCents) {
   }).format((amountCents || 0) / 100);
 }
 
+function formatSlotLabel(startTime) {
+  if (!startTime) return startTime;
+  const d = new Date(startTime);
+  if (isNaN(d)) return startTime;
+  return d.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 function statusClass(status) {
   const s = (status || "").toUpperCase();
   if (s === "COMPLETED") return "status completed";
@@ -43,6 +57,11 @@ function canNoShow(status) {
   return s === "APPROVED" || s === "AUTHORIZED";
 }
 
+function canMove(status) {
+  const s = normalizeStatus(status);
+  return s !== "CANCELED" && s !== "NO_SHOW" && s !== "REFUNDED";
+}
+
 export default function App() {
   const [date, setDate] = useState(() => {
     const now = new Date();
@@ -61,6 +80,14 @@ export default function App() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
+
+  // Move modal state
+  const [moveModal, setMoveModal] = useState(null); // { reservation, currentSlotLabel }
+  const [moveDate, setMoveDate] = useState("");
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [selectedTargetId, setSelectedTargetId] = useState(null);
+  const [moving, setMoving] = useState(false);
 
   const headers = useMemo(
     () => ({
@@ -100,6 +127,38 @@ export default function App() {
       return `${teeTimeText} ${reservationText}`.includes(searchText);
     });
   }, [teeTimes, search]);
+
+  // Fetch available slots whenever moveDate changes inside the modal
+  useEffect(() => {
+    if (!moveDate || !moveModal) {
+      setAvailableSlots([]);
+      return;
+    }
+    setLoadingSlots(true);
+    setSelectedTargetId(null);
+
+    fetch(`${baseUrl}/api/tee-times`, {
+      headers,
+      credentials: "include",
+    })
+      .then((r) => r.json())
+      .then((slots) => {
+        const filtered = (Array.isArray(slots) ? slots : []).filter(
+          (s) =>
+            // exclude the reservation's current slot
+            s.id !== moveModal.reservation.teeTimeId &&
+            // match selected date (ISO startTime like "2026-06-15T08:00:00")
+            (s.startTime || "").startsWith(moveDate) &&
+            // enough room for the party
+            s.capacity >= moveModal.reservation.partySize &&
+            // not blocked
+            !s.blocked
+        );
+        setAvailableSlots(filtered.sort((a, b) => a.startTime.localeCompare(b.startTime)));
+      })
+      .catch(() => setAvailableSlots([]))
+      .finally(() => setLoadingSlots(false));
+  }, [moveDate, moveModal, headers]);
 
   useEffect(() => {
     checkAuth();
@@ -250,6 +309,57 @@ export default function App() {
     }
   }
 
+  async function handleMove() {
+    if (!selectedTargetId || !moveModal) return;
+    setMoving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const res = await fetch(
+        `${baseUrl}/api/admin/reservations/${moveModal.reservation.reservationId}/move`,
+        {
+          method: "POST",
+          headers,
+          credentials: "include",
+          body: JSON.stringify({ targetTeeTimeId: selectedTargetId }),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      setMessage(
+        `Reservation ${moveModal.reservation.reservationId} moved successfully. A confirmation email has been sent to ${moveModal.reservation.customerEmail}.`
+      );
+      closeMoveModal();
+      await loadTeeSheet();
+    } catch (err) {
+      setError(err.message || "Failed to move reservation.");
+    } finally {
+      setMoving(false);
+    }
+  }
+
+  function openMoveModal(row, slotLabel) {
+    setMoveModal({ reservation: row, currentSlotLabel: slotLabel });
+    // Pre-fill with the current tee time's date
+    const currentDate = (row.startTime || "").slice(0, 10);
+    setMoveDate(currentDate || new Date().toISOString().slice(0, 10));
+    setSelectedTargetId(null);
+    setAvailableSlots([]);
+    setError("");
+    setMessage("");
+  }
+
+  function closeMoveModal() {
+    setMoveModal(null);
+    setMoveDate("");
+    setAvailableSlots([]);
+    setSelectedTargetId(null);
+  }
+
   async function seedDate() {
     if (!window.confirm(`Seed tee times for ${date}?`)) return;
 
@@ -390,7 +500,8 @@ export default function App() {
   return (
     <div className="page">
       <div className="container">
-        <div className="pageHeader"
+        <div
+          className="pageHeader"
           style={{
             display: "flex",
             justifyContent: "space-between",
@@ -405,12 +516,17 @@ export default function App() {
               Tee sheet, blocking, check-in, and payment actions
             </p>
             <div className="muted">
-              Signed in as {currentUser.name || currentUser.email} ({currentUser.role})
+              Signed in as {currentUser.name || currentUser.email} (
+              {currentUser.role})
             </div>
           </div>
 
           <div className="buttonRow">
-            <button onClick={handleLogout} className="secondary" disabled={loading}>
+            <button
+              onClick={handleLogout}
+              className="secondary"
+              disabled={loading}
+            >
               Log Out
             </button>
           </div>
@@ -462,11 +578,15 @@ export default function App() {
                     <h2>{teeTime.slotLabel}</h2>
                     <div className="muted">Tee Time ID {teeTime.teeTimeId}</div>
                     <div className="muted">
-                      Capacity {teeTime.capacity} · Remaining {teeTime.spotsRemaining}
+                      Capacity {teeTime.capacity} · Remaining{" "}
+                      {teeTime.spotsRemaining}
                     </div>
                     {teeTime.blocked && (
                       <div className="message error inlineMessage">
-                        Blocked{teeTime.blockedReason ? `: ${teeTime.blockedReason}` : ""}
+                        Blocked
+                        {teeTime.blockedReason
+                          ? `: ${teeTime.blockedReason}`
+                          : ""}
                       </div>
                     )}
                   </div>
@@ -474,7 +594,9 @@ export default function App() {
                   <div className="buttonRow">
                     <button
                       onClick={() => toggleBlocked(teeTime)}
-                      disabled={loading || isActionLoading(teeTime.teeTimeId, "block")}
+                      disabled={
+                        loading || isActionLoading(teeTime.teeTimeId, "block")
+                      }
                       className={teeTime.blocked ? "secondary" : ""}
                     >
                       {isActionLoading(teeTime.teeTimeId, "block")
@@ -505,13 +627,16 @@ export default function App() {
                           <div>
                             <div className="reservationTop">
                               <strong>{row.customerName}</strong>
-                              <span className={statusClass(status)}>{status}</span>
+                              <span className={statusClass(status)}>
+                                {status}
+                              </span>
                             </div>
                             <div className="muted">{row.customerEmail}</div>
                             <div className="details">
                               <span>Party {row.partySize}</span>
                               <span>
-                                Transportation: {row.transportation ? "Yes" : "No"}
+                                Transportation:{" "}
+                                {row.transportation ? "Yes" : "No"}
                               </span>
                               <span>{row.tierName}</span>
                               <span>{formatMoney(row.amountCents)}</span>
@@ -520,60 +645,81 @@ export default function App() {
 
                           <div className="buttonRow">
                             <button
-                                onClick={() => runAction(row.reservationId, "capture")}
-                                disabled={
-                                    loading ||
-                                    isActionLoading(row.reservationId, "capture") ||
-                                    !canCapture(status)
-                                }
+                              onClick={() =>
+                                runAction(row.reservationId, "capture")
+                              }
+                              disabled={
+                                loading ||
+                                isActionLoading(row.reservationId, "capture") ||
+                                !canCapture(status)
+                              }
                             >
                               {isActionLoading(row.reservationId, "capture")
-                                  ? "Capturing..."
-                                  : "Capture"}
+                                ? "Capturing..."
+                                : "Capture"}
                             </button>
 
                             <button
-                                onClick={() => runAction(row.reservationId, "cancel")}
-                                disabled={
-                                    loading ||
-                                    isActionLoading(row.reservationId, "cancel") ||
-                                    !canCancel(status)
-                                }
-                                className="secondary"
+                              onClick={() =>
+                                runAction(row.reservationId, "cancel")
+                              }
+                              disabled={
+                                loading ||
+                                isActionLoading(row.reservationId, "cancel") ||
+                                !canCancel(status)
+                              }
+                              className="secondary"
                             >
                               {isActionLoading(row.reservationId, "cancel")
-                                  ? "Cancelling..."
-                                  : "Cancel"}
+                                ? "Cancelling..."
+                                : "Cancel"}
                             </button>
 
                             <button
-                                onClick={() => runAction(row.reservationId, "refund")}
-                                disabled={
-                                    loading ||
-                                    isActionLoading(row.reservationId, "refund") ||
-                                    !canRefund(status)
-                                }
-                                className="secondary"
+                              onClick={() =>
+                                runAction(row.reservationId, "refund")
+                              }
+                              disabled={
+                                loading ||
+                                isActionLoading(row.reservationId, "refund") ||
+                                !canRefund(status)
+                              }
+                              className="secondary"
                             >
                               {isActionLoading(row.reservationId, "refund")
-                                  ? "Refunding..."
-                                  : "Refund"}
+                                ? "Refunding..."
+                                : "Refund"}
                             </button>
 
                             <button
-                                onClick={() => runAction(row.reservationId, "no-show")}
-                                disabled={
-                                    loading ||
-                                    isActionLoading(row.reservationId, "no-show") ||
-                                    !canNoShow(status)
-                                }
-                                className="secondary"
+                              onClick={() =>
+                                runAction(row.reservationId, "no-show")
+                              }
+                              disabled={
+                                loading ||
+                                isActionLoading(row.reservationId, "no-show") ||
+                                !canNoShow(status)
+                              }
+                              className="secondary"
                             >
                               {isActionLoading(row.reservationId, "no-show")
-                                  ? "Processing..."
-                                  : "No Show (50%)"}
+                                ? "Processing..."
+                                : "No Show (50%)"}
                             </button>
 
+                            <button
+                              onClick={() =>
+                                openMoveModal(row, teeTime.slotLabel)
+                              }
+                              disabled={
+                                loading ||
+                                isActionLoading(row.reservationId, "move") ||
+                                !canMove(status)
+                              }
+                              className="secondary"
+                            >
+                              Move
+                            </button>
                           </div>
                         </div>
                       );
@@ -585,6 +731,88 @@ export default function App() {
           )}
         </div>
       </div>
+
+      {/* ── Move Modal ── */}
+      {moveModal && (
+        <div className="modalOverlay" onClick={closeMoveModal}>
+          <div
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ marginTop: 0 }}>Move Reservation</h2>
+
+            <div style={{ marginBottom: "1rem" }}>
+              <div>
+                <strong>{moveModal.reservation.customerName}</strong>
+                <span
+                  className="muted"
+                  style={{ marginLeft: 8 }}
+                >
+                  Party of {moveModal.reservation.partySize}
+                </span>
+              </div>
+              <div className="muted" style={{ fontSize: "0.85rem", marginTop: 2 }}>
+                Currently on: <strong>{moveModal.currentSlotLabel}</strong>
+              </div>
+            </div>
+
+            <div className="field">
+              <label>Move to date</label>
+              <input
+                type="date"
+                value={moveDate}
+                onChange={(e) => setMoveDate(e.target.value)}
+              />
+            </div>
+
+            {moveDate && (
+              <div style={{ marginTop: "0.75rem" }}>
+                {loadingSlots ? (
+                  <p className="muted">Loading available slots…</p>
+                ) : availableSlots.length === 0 ? (
+                  <p className="muted" style={{ fontStyle: "italic" }}>
+                    No available slots on this date with enough capacity.
+                  </p>
+                ) : (
+                  <>
+                    <label style={{ display: "block", marginBottom: "0.5rem" }}>
+                      Select a slot
+                    </label>
+                    <div className="slotList">
+                      {availableSlots.map((slot) => (
+                        <div
+                          key={slot.id}
+                          className={`slotOption ${
+                            selectedTargetId === slot.id ? "slotOptionSelected" : ""
+                          }`}
+                          onClick={() => setSelectedTargetId(slot.id)}
+                        >
+                          <span>{formatSlotLabel(slot.startTime)}</span>
+                          <span className="muted" style={{ fontSize: "0.8rem" }}>
+                            {slot.capacity} spot{slot.capacity !== 1 ? "s" : ""} open
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div className="buttonRow" style={{ marginTop: "1.5rem" }}>
+              <button
+                onClick={handleMove}
+                disabled={!selectedTargetId || moving}
+              >
+                {moving ? "Moving…" : "Confirm Move"}
+              </button>
+              <button className="secondary" onClick={closeMoveModal}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

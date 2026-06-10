@@ -296,6 +296,74 @@ input[type="date"] {
   appearance: none;
 }
 
+/* ── Move Modal ── */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal {
+  background: var(--rc-panel);
+  border: 1px solid rgba(45, 106, 45, 0.2);
+  border-radius: 20px;
+  padding: 24px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18);
+}
+
+.modal h2 {
+  font-size: 20px;
+  margin: 0 0 16px;
+}
+
+.slotList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  margin-top: 6px;
+}
+
+.slotOption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border: 1px solid var(--rc-border);
+  border-radius: 12px;
+  cursor: pointer;
+  background: var(--rc-panel-2);
+  transition: border-color 0.15s, background 0.15s;
+  font-size: 13px;
+  color: var(--rc-text);
+}
+
+.slotOption:hover {
+  border-color: var(--rc-gold);
+  background: rgba(45, 106, 45, 0.06);
+}
+
+.slotOptionSelected {
+  background: linear-gradient(180deg, var(--rc-gold) 0%, var(--rc-gold-dark) 100%);
+  border-color: var(--rc-gold-dark);
+  color: #f0ece0;
+}
+
+.slotOptionSelected .muted {
+  color: rgba(240, 236, 224, 0.7);
+}
+
 @media (max-width: 700px) {
   .page {
     padding: 14px;
@@ -313,5 +381,9 @@ input[type="date"] {
   input[type="date"] {
     width: 100%;
     min-width: 0;
+  }
+
+  .modal {
+    padding: 18px;
   }
 }
