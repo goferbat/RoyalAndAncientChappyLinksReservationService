@@ -1,6 +1,7 @@
 package org.chappyGolf.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.apache.cayenne.Cayenne;
 import org.apache.cayenne.ObjectContext;
@@ -8,6 +9,8 @@ import org.apache.cayenne.query.ObjectSelect;
 import org.chappyGolf.dto.AuthUserResponse;
 import org.chappyGolf.dto.LoginRequest;
 import org.chappyGolf.model.cayenne.Users;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,7 +29,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public AuthUserResponse login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+    public AuthUserResponse login(@RequestBody LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
         if (request.getEmail() == null || request.getEmail().isBlank()) {
             throw new RuntimeException("Email is required");
         }
@@ -52,6 +55,16 @@ public class AuthController {
 
         HttpSession session = httpRequest.getSession(true);
         session.setAttribute(ADMIN_USER_ID_SESSION_KEY, Cayenne.intPKForObject(user));
+
+        // Rewrite the session cookie with cross-site attributes
+        ResponseCookie cookie = ResponseCookie.from("JSESSIONID", session.getId())
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(8 * 60 * 60) // 8 hours
+                .build();
+        httpResponse.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         return new AuthUserResponse(
                 Cayenne.intPKForObject(user),

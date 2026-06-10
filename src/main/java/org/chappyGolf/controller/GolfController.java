@@ -577,4 +577,76 @@ public class GolfController {
                 reservation.getTeeTime().getStartTime()
         );
     }
+
+    public ReservationStatusResponse moveReservation(int reservationId, int targetTeeTimeId) {
+        Reservation reservation = Cayenne.objectForPK(context, Reservation.class, reservationId);
+        if (reservation == null) throw new RuntimeException("Reservation not found");
+
+        Payment payment = ObjectSelect.query(Payment.class)
+                .where(Payment.RESERVATION.eq(reservation))
+                .selectOne(context);
+        if (payment == null) throw new RuntimeException("Payment not found");
+
+        if ("CANCELED".equals(payment.getStatus()) || "NO_SHOW".equals(payment.getStatus())) {
+            throw new RuntimeException("Cannot move a reservation with payment status: " + payment.getStatus());
+        }
+
+        TeeTime targetTeeTime = Cayenne.objectForPK(context, TeeTime.class, targetTeeTimeId);
+        if (targetTeeTime == null) throw new RuntimeException("Target tee time not found");
+
+        if (targetTeeTime.isBlocked()) {
+            throw new RuntimeException("Target tee time is blocked");
+        }
+
+        if (targetTeeTime.getCapacity() < reservation.getPartySize()) {
+            throw new RuntimeException("Target tee time does not have enough capacity for party of " + reservation.getPartySize());
+        }
+
+        TeeTime previousTeeTime = reservation.getTeeTime();
+        LocalDateTime previousStartTime = previousTeeTime.getStartTime();
+
+        // Restore capacity on the old slot
+        previousTeeTime.setCapacity(previousTeeTime.getCapacity() + reservation.getPartySize());
+
+        // Decrement capacity on the new slot
+        targetTeeTime.setCapacity(targetTeeTime.getCapacity() - reservation.getPartySize());
+
+        // Move the reservation
+        reservation.setTeeTime(targetTeeTime);
+
+        context.commitChanges();
+
+        int id = Cayenne.intPKForObject(reservation);
+
+        try {
+            emailService.sendMoveNotificationToAdmin(
+                    reservation.getUser().getName(),
+                    reservation.getUser().getEmail(),
+                    previousStartTime,
+                    targetTeeTime.getStartTime(),
+                    reservation.getTier().getName(),
+                    reservation.getPartySize(),
+                    id
+            );
+            emailService.sendMoveConfirmationToCustomer(
+                    reservation.getUser().getName(),
+                    reservation.getUser().getEmail(),
+                    previousStartTime,
+                    targetTeeTime.getStartTime(),
+                    reservation.getTier().getName(),
+                    reservation.getPartySize(),
+                    id
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return new ReservationStatusResponse(
+                id,
+                payment.getStatus(),
+                reservation.getPartySize(),
+                targetTeeTime.getStartTime()
+        );
+    }
+
 }

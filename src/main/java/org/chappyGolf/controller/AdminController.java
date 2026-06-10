@@ -4,16 +4,13 @@ import com.squareup.square.core.SquareApiException;
 import org.apache.cayenne.Cayenne;
 import org.apache.cayenne.ObjectContext;
 import org.apache.cayenne.query.ObjectSelect;
-import org.chappyGolf.dto.AdminReservationDetailResponse;
-import org.chappyGolf.dto.AdminTeeTimeDto;
-import org.chappyGolf.dto.AdminTeeTimeReservationDto;
-import org.chappyGolf.dto.ReservationStatusResponse;
-import org.chappyGolf.dto.UpdateTeeTimeBlockRequest;
+import org.chappyGolf.dto.*;
 import org.chappyGolf.model.cayenne.Payment;
 import org.chappyGolf.model.cayenne.Reservation;
 import org.chappyGolf.model.cayenne.TeeTime;
 import org.chappyGolf.services.TeeTimeSeedService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -176,6 +173,14 @@ public class AdminController {
     @PostMapping("/reservations/{id}/no-show")
     public ReservationStatusResponse noShow(@PathVariable int id) throws SquareApiException {
         return golfController.noShowReservation(id);
+    }
+
+    @PostMapping("/reservations/{id}/move")
+    public ResponseEntity<ReservationStatusResponse> moveReservation(
+            @PathVariable int id,
+            @RequestBody MoveReservationRequest request) {
+        ReservationStatusResponse response = golfController.moveReservation(id, request.getTargetTeeTimeId());
+        return ResponseEntity.ok(response);
     }
 
 }

@@ -217,4 +217,55 @@ public class EmailService {
 
         sendEmail(customerEmail, "No-Show Fee Applied – Reservation #" + reservationId, text);
     }
+
+    public void sendMoveConfirmationToCustomer(
+            String name, String email,
+            LocalDateTime previousStartTime, LocalDateTime newStartTime,
+            String tierName, int partySize, int reservationId) {
+
+        String subject = "Your Royal Chappy tee time has been updated";
+        String body = String.format(
+                "Hi %s,\n\n" +
+                        "Your reservation (#%d) has been moved.\n\n" +
+                        "Previous time: %s\n" +
+                        "New time:      %s\n\n" +
+                        "Tier: %s\n" +
+                        "Party size: %d\n\n" +
+                        "If you have any questions, please call the clubhouse at 508-939-4055.\n\n" +
+                        "See you on the Chappy side.\n" +
+                        "— Royal Chappy",
+                name,
+                reservationId,
+                previousStartTime.format(java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM d 'at' h:mm a")),
+                newStartTime.format(java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM d 'at' h:mm a")),
+                tierName,
+                partySize
+        );
+
+        sendEmail(email, subject, body);
+    }
+
+    public void sendMoveNotificationToAdmin(
+            String name, String email,
+            LocalDateTime previousStartTime, LocalDateTime newStartTime,
+            String tierName, int partySize, int reservationId) {
+
+        String subject = "[Admin] Reservation moved: " + name;
+        String body = String.format(
+                "Reservation #%d for %s (%s) has been moved.\n\n" +
+                        "From: %s\n" +
+                        "To:   %s\n\n" +
+                        "Tier: %s | Party size: %d",
+                reservationId,
+                name,
+                email,
+                previousStartTime.format(java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM d 'at' h:mm a")),
+                newStartTime.format(java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM d 'at' h:mm a")),
+                tierName,
+                partySize
+        );
+
+        sendEmail(adminEmail, subject, body);
+    }
+
 }
