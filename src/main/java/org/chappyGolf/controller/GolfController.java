@@ -25,17 +25,20 @@ public class GolfController {
     private final ObjectContext context;
     private final SquareClient squareClient;
     private final String squareLocationId;
+    private final String teeTimeVariationId;
     private final org.chappyGolf.services.TeeTimeSeedService teeTimeSeedService;
     private final org.chappyGolf.services.EmailService emailService;
 
     public GolfController(ObjectContext context,
                           SquareClient squareClient,
                           @Value("${square.location.id}") String squareLocationId,
+                          @Value("${square.tee-time.variation-id}") String teeTimeVariationId,
                           org.chappyGolf.services.TeeTimeSeedService teeTimeSeedService,
                           org.chappyGolf.services.EmailService emailService) {
         this.context = context;
         this.squareClient = squareClient;
         this.squareLocationId = squareLocationId;
+        this.teeTimeVariationId = teeTimeVariationId;
         this.teeTimeSeedService = teeTimeSeedService;
         this.emailService = emailService;
     }
@@ -125,6 +128,8 @@ public class GolfController {
 
         long totalAmount = tier.getPriceCents() * dto.getPartySize();
 
+        String orderId = createTeeTimeOrder(dto.getPartySize(), tier.getPriceCents(), totalAmount);
+
         Money amount = Money.builder()
                 .amount(totalAmount)
                 .currency(Currency.USD)
@@ -135,6 +140,7 @@ public class GolfController {
                 .idempotencyKey(UUID.randomUUID().toString())
                 .amountMoney(amount)
                 .locationId(squareLocationId)
+                .orderId(orderId)
                 .autocomplete(false)
                 .build();
 
@@ -205,10 +211,7 @@ public class GolfController {
     // ---- Tee Times ----
     @GetMapping("/tee-times")
     public List<TeeTimeResponse> listTeeTimes() {
-        // Load all tee times
         List<TeeTime> teeTimes = ObjectSelect.query(TeeTime.class).select(context);
-
-        // Load tiers once (since they're always the same for every tee time)
         List<TeeTimeTier> tiers = ObjectSelect.query(TeeTimeTier.class).select(context);
 
         return teeTimes.stream()
@@ -259,7 +262,6 @@ public class GolfController {
 
         String status = sqPayment.getStatus().orElse("UNKNOWN");
 
-        // keep DB in sync with Square
         payment.setStatus(status);
         context.commitChanges();
 
@@ -289,6 +291,8 @@ public class GolfController {
 
         long totalAmount = tier.getPriceCents() * dto.getPartySize();
 
+        String orderId = createTeeTimeOrder(dto.getPartySize(), tier.getPriceCents(), totalAmount);
+
         Money amount = Money.builder()
                 .amount(totalAmount)
                 .currency(Currency.USD)
@@ -299,7 +303,8 @@ public class GolfController {
                 .idempotencyKey(UUID.randomUUID().toString())
                 .amountMoney(amount)
                 .locationId(squareLocationId)
-                .autocomplete(false)  // HOLDS CARD
+                .orderId(orderId)
+                .autocomplete(false)
                 .build();
 
         CreatePaymentResponse paymentResp = squareClient.payments().create(paymentReq);
@@ -325,7 +330,7 @@ public class GolfController {
         payment.setReservation(reservation);
         payment.setSquarePaymentId(paymentId);
         payment.setAmountCents(totalAmount);
-        payment.setStatus(status); // should be AUTHORIZED
+        payment.setStatus(status);
         payment.setCreatedAt(LocalDateTime.now());
 
         context.commitChanges();
@@ -356,14 +361,43 @@ public class GolfController {
             );
         } catch (Exception e) {
             e.printStackTrace();
-            // swap this for proper logging
         }
+
         return new ReservationStatusResponse(
                 reservationId,
                 status,
                 reservation.getPartySize(),
                 teeTime.getStartTime()
         );
+    }
+
+
+    private String createTeeTimeOrder(int quantity, long unitPriceCents, long totalAmount) throws SquareApiException {
+        OrderLineItem lineItem = OrderLineItem.builder()
+                .quantity(String.valueOf(quantity))
+                .catalogObjectId(teeTimeVariationId)
+                .basePriceMoney(Money.builder()
+                        .amount(unitPriceCents)
+                        .currency(Currency.USD)
+                        .build())
+                .build();
+
+        Order order = Order.builder()
+                .locationId(squareLocationId)
+                .lineItems(List.of(lineItem))
+                .build();
+
+        CreateOrderRequest orderRequest = CreateOrderRequest.builder()
+                .order(order)
+                .idempotencyKey(UUID.randomUUID().toString())
+                .build();
+
+        CreateOrderResponse orderResponse = squareClient.orders().create(orderRequest);
+
+        return orderResponse.getOrder()
+                .orElseThrow(() -> new RuntimeException("Order creation failed"))
+                .getId()
+                .orElseThrow(() -> new RuntimeException("Order ID missing"));
     }
 
     public ReservationStatusResponse captureReservationPayment(int id) throws SquareApiException {
@@ -436,6 +470,7 @@ public class GolfController {
                 reservation.getTeeTime().getStartTime()
         );
     }
+
     public void cancelReservationPayment(@PathVariable int id) throws SquareApiException {
         Reservation reservation = Cayenne.objectForPK(context, Reservation.class, id);
         if (reservation == null) throw new RuntimeException("Reservation not found");
@@ -457,7 +492,6 @@ public class GolfController {
             throw new RuntimeException("Cancel failed, status: " + status);
         }
 
-        // restore capacity since they never showed
         TeeTime teeTime = reservation.getTeeTime();
         teeTime.setCapacity(teeTime.getCapacity() + reservation.getPartySize());
 
@@ -466,7 +500,6 @@ public class GolfController {
     }
 
     public void refundReservation(@PathVariable int id) throws com.squareup.square.core.SquareApiException {
-        // Look up local records
         Reservation reservation = org.apache.cayenne.Cayenne.objectForPK(context, Reservation.class, id);
         if (reservation == null) throw new RuntimeException("Reservation not found");
 
@@ -477,18 +510,12 @@ public class GolfController {
 
         TeeTime teeTime = reservation.getTeeTime();
 
-        // Build refund request (v45)
-        com.squareup.square.types.Money amt = com.squareup.square.types.Money.builder()
-                .amount(payment.getAmountCents())
-                .currency(com.squareup.square.types.Currency.USD)
-                .build();
-
         System.out.println(Money.builder().amount(payment.getAmountCents()).currency(Currency.USD).build());
 
         RefundPaymentRequest refundReq = RefundPaymentRequest.builder()
                 .idempotencyKey(UUID.randomUUID().toString())
                 .amountMoney(Money.builder()
-                        .amount(payment.getAmountCents()) // must match or be less
+                        .amount(payment.getAmountCents())
                         .currency(Currency.USD)
                         .build())
                 .paymentId(payment.getSquarePaymentId())
@@ -504,7 +531,6 @@ public class GolfController {
             throw new RuntimeException("Refund failed with status: " + refundStatus);
         }
 
-        // Restore capacity and update local payment status (keep history)
         teeTime.setCapacity(teeTime.getCapacity() + reservation.getPartySize());
         payment.setStatus("REFUNDED");
         context.commitChanges();
@@ -523,13 +549,11 @@ public class GolfController {
             throw new RuntimeException("Payment is not in an authorized state (current: " + payment.getStatus() + ")");
         }
 
-        // Capture full amount
         CompletePaymentRequest captureReq = CompletePaymentRequest.builder()
                 .paymentId(payment.getSquarePaymentId())
                 .build();
         squareClient.payments().complete(captureReq);
 
-        // Refund 50%
         long refundAmount = payment.getAmountCents() / 2;
         RefundPaymentRequest refundReq = RefundPaymentRequest.builder()
                 .idempotencyKey(UUID.randomUUID().toString())
@@ -605,13 +629,8 @@ public class GolfController {
         TeeTime previousTeeTime = reservation.getTeeTime();
         LocalDateTime previousStartTime = previousTeeTime.getStartTime();
 
-        // Restore capacity on the old slot
         previousTeeTime.setCapacity(previousTeeTime.getCapacity() + reservation.getPartySize());
-
-        // Decrement capacity on the new slot
         targetTeeTime.setCapacity(targetTeeTime.getCapacity() - reservation.getPartySize());
-
-        // Move the reservation
         reservation.setTeeTime(targetTeeTime);
 
         context.commitChanges();
@@ -648,5 +667,4 @@ public class GolfController {
                 targetTeeTime.getStartTime()
         );
     }
-
 }
