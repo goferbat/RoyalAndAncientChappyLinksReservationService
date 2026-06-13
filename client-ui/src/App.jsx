@@ -579,17 +579,36 @@ const filteredTeeTimes = useMemo(() => {
                       </div>
 
                       <div className="tierRow">
-                        <button
-                          type="button"
-                          className="tierButton"
-                          disabled={true}
-                          style={{ opacity: 0.5, cursor: "not-allowed" }}
-                        >
-                          <span>Transportation</span>
-                          <span className="tierPrice" style={{ fontStyle: "italic" }}>
-                            Available later this summer
-                          </span>
-                        </button>
+                        {(() => {
+                          const transportationLive = new Date() >= new Date("2026-06-20");
+                          const transportationSelected = isSelected && form.transportation;
+                          return transportationLive ? (
+                            <button
+                              key="transportation"
+                              type="button"
+                              className={`tierButton ${transportationSelected ? "selectedTier" : ""}`}
+                              disabled={unavailable}
+                              onClick={() => toggleTransportation(slot)}
+                            >
+                              <span>Transportation</span>
+                              <span className="tierPrice">
+                                {formatMoney(TRANSPORTATION_PRICE_CENTS)} / player
+                              </span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="tierButton"
+                              disabled={true}
+                              style={{ opacity: 0.5, cursor: "not-allowed" }}
+                            >
+                              <span>Transportation</span>
+                              <span className="tierPrice" style={{ fontStyle: "italic" }}>
+                                Available June 20th
+                              </span>
+                            </button>
+                          );
+                        })()}
                       </div>
 
                       <div className="buttonRow">
