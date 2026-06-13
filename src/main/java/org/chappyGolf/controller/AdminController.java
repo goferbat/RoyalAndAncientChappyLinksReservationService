@@ -8,6 +8,7 @@ import org.chappyGolf.dto.*;
 import org.chappyGolf.model.cayenne.Payment;
 import org.chappyGolf.model.cayenne.Reservation;
 import org.chappyGolf.model.cayenne.TeeTime;
+import org.chappyGolf.model.cayenne.TeeTimeTier;
 import org.chappyGolf.services.TeeTimeSeedService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -181,6 +182,26 @@ public class AdminController {
             @RequestBody MoveReservationRequest request) {
         ReservationStatusResponse response = golfController.moveReservation(id, request.getTargetTeeTimeId());
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/tiers")
+    public List<TeeTimeTierDto> listTiers() {
+        return ObjectSelect.query(TeeTimeTier.class).select(context)
+                .stream()
+                .map(t -> new TeeTimeTierDto(Cayenne.intPKForObject(t), t.getName(), t.getPriceCents()))
+                .toList();
+    }
+
+    @PutMapping("/tiers/{id}/price")
+    public TeeTimeTierDto updateTierPrice(@PathVariable int id, @RequestBody UpdateTierPriceDto dto) {
+        TeeTimeTier tier = Cayenne.objectForPK(context, TeeTimeTier.class, id);
+        if (tier == null) throw new RuntimeException("Tier not found");
+        if (dto.getPriceCents() <= 0) throw new RuntimeException("Price must be greater than 0");
+
+        tier.setPriceCents(dto.getPriceCents());
+        context.commitChanges();
+
+        return new TeeTimeTierDto(Cayenne.intPKForObject(tier), tier.getName(), tier.getPriceCents());
     }
 
 }
