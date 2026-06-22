@@ -32,7 +32,7 @@ public class TeeTimeSeedService {
     @Scheduled(cron = "0 0 6 * * SUN", zone = "America/New_York")
     public void seedNextTwoWeeks() {
         LocalDate today = LocalDate.now();
-        for (int i = 0; i <= 13; i++) {
+        for (int i = 0; i <= 6; i++) {
             seedForDate(today.plusDays(i));
         }
     }
