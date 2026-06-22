@@ -26,11 +26,11 @@ public class TeeTimeSeedService {
     // BE CAREFUL WITH THIS
     @EventListener(ApplicationReadyEvent.class)
     public void seedOnStartup() {
-        seedNextTwoWeeks();
+        seedNextWeek();
     }
 
-    @Scheduled(cron = "0 0 6 * * SUN", zone = "America/New_York")
-    public void seedNextTwoWeeks() {
+    @Scheduled(cron = "0 0 6 * * *", zone = "America/New_York")
+    public void seedNextWeek() {
         LocalDate today = LocalDate.now();
         for (int i = 0; i <= 6; i++) {
             seedForDate(today.plusDays(i));
