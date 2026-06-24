@@ -7,6 +7,10 @@ public class ClientReservationDto {
     private String sourceId;
     private int partySize;
     private int teeTimeTierId;
+    private boolean transportation;
+
+    public boolean isTransportation() { return transportation; }
+    public void setTransportation(boolean transportation) { this.transportation = transportation; }
 
     public String getName() {
         return name;

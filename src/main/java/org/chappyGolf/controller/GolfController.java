@@ -126,9 +126,10 @@ public class GolfController {
             throw new RuntimeException("Not enough capacity left");
         }
 
-        long totalAmount = tier.getPriceCents() * dto.getPartySize();
+        long transportationCents = dto.isTransportation() ? 800L * dto.getPartySize() : 0L;
+        long totalAmount = (tier.getPriceCents() * dto.getPartySize()) + transportationCents;
 
-        String orderId = createTeeTimeOrder(dto.getPartySize(), tier.getPriceCents(), totalAmount);
+        String orderId = createTeeTimeOrder(dto.getPartySize(), tier.getPriceCents(), totalAmount, transportationCents);
 
         Money amount = Money.builder()
                 .amount(totalAmount)
@@ -161,6 +162,7 @@ public class GolfController {
         reservation.setTeeTime(teeTime);
         reservation.setTier(tier);
         reservation.setPartySize(dto.getPartySize());
+        reservation.setTransportation(dto.isTransportation());
         reservation.setCreatedAt(LocalDateTime.now());
 
         teeTime.setCapacity(teeTime.getCapacity() - dto.getPartySize());
@@ -291,7 +293,7 @@ public class GolfController {
 
         long totalAmount = tier.getPriceCents() * dto.getPartySize();
 
-        String orderId = createTeeTimeOrder(dto.getPartySize(), tier.getPriceCents(), totalAmount);
+        String orderId = createTeeTimeOrder(dto.getPartySize(), tier.getPriceCents(), totalAmount, 0L);
 
         Money amount = Money.builder()
                 .amount(totalAmount)
@@ -372,19 +374,32 @@ public class GolfController {
     }
 
 
-    private String createTeeTimeOrder(int quantity, long unitPriceCents, long totalAmount) throws SquareApiException {
-        OrderLineItem lineItem = OrderLineItem.builder()
+    private String createTeeTimeOrder(int quantity, long unitPriceCents, long totalAmount, long transportationCents) throws SquareApiException {
+        List<OrderLineItem> lineItems = new java.util.ArrayList<>();
+
+        lineItems.add(OrderLineItem.builder()
                 .quantity(String.valueOf(quantity))
                 .catalogObjectId(teeTimeVariationId)
                 .basePriceMoney(Money.builder()
                         .amount(unitPriceCents)
                         .currency(Currency.USD)
                         .build())
-                .build();
+                .build());
+
+        if (transportationCents > 0) {
+            lineItems.add(OrderLineItem.builder()
+                    .quantity(String.valueOf(quantity))
+                    .name("Transportation")
+                    .basePriceMoney(Money.builder()
+                            .amount(800L)
+                            .currency(Currency.USD)
+                            .build())
+                    .build());
+        }
 
         Order order = Order.builder()
                 .locationId(squareLocationId)
-                .lineItems(List.of(lineItem))
+                .lineItems(lineItems)
                 .build();
 
         CreateOrderRequest orderRequest = CreateOrderRequest.builder()
